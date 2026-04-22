@@ -145,11 +145,20 @@ async function fetchChapterWS(page) {
     const d = await r.json(); if (!d?.parse?.text?.["*"]) return null;
     const html = d.parse.text["*"];
     const doc = new DOMParser().parseFromString(html, "text/html");
-    doc.querySelectorAll(".mw-editsection, .noprint, .reference, sup.reference, table, .licensetpl, .prp-pages-output, style, script, .ws-noexport").forEach(el => el.remove());
+    // Strip chrome — but NOT .prp-pages-output, which is the ProofreadPage
+    // wrapper that actually contains the chapter body on modern Wikisource
+    // transcluded pages. Also strip the pagenum spans inside it.
+    doc.querySelectorAll(".mw-editsection, .noprint, .reference, sup.reference, table, .licensetpl, style, script, .ws-noexport, .pagenum, .ws-pagenum").forEach(el => el.remove());
+    // Scope to the ProofreadPage body when present — the section outside it
+    // is nav / header templates and should never end up in the chapter text.
+    const root = doc.querySelector(".prp-pages-output") || doc.querySelector(".mw-parser-output") || doc.body;
     let text = "";
-    doc.querySelectorAll("p, div.poem p").forEach(p => {
+    root.querySelectorAll("p, div.poem p").forEach(p => {
       const t = p.textContent?.trim();
-      if (t && t.length > 20) text += t + "\n\n";
+      // Accept slightly shorter paragraphs — 20 was throwing away real short
+      // lines (dialogue, one-line scene breaks). 12 is still enough to filter
+      // heading noise like "CHAPTER I." (10 chars).
+      if (t && t.length > 12) text += t + "\n\n";
     });
     return text.trim().length > 100 ? text.trim() : null;
   } catch { return null; }
