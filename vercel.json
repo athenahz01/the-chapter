@@ -1,0 +1,10 @@
+{
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/app", "destination": "/app.html" }
+  ],
+  "functions": {
+    "api/claude.js": { "maxDuration": 30 },
+    "api/send.js": { "maxDuration": 10 }
+  }
+}

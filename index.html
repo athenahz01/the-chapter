@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Chapter — Classic Literature Delivered to Your Inbox</title>
+  <meta name="description" content="Subscribe to the world's greatest books and receive chapters on your schedule — with AI-written preludes to set the scene. First 3 chapters free.">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="The Chapter — Classic Literature, Chapter by Chapter">
+  <meta property="og:description" content="The greatest stories were never meant to be binged. Get chapters delivered to your inbox on your schedule.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/og-image.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&display=swap" rel="stylesheet">
+  
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --bg: #FAF6F0;
+      --fg: #1A1612;
+      --muted: #8A7E73;
+      --accent: #6B1D2A;
+      --gold: #B8964E;
+      --border: #DDD5CA;
+      --warm: #F5EFE4;
+      --card: #FFFFFF;
+      --serif: 'Playfair Display', Georgia, serif;
+      --body: 'Cormorant Garamond', Georgia, serif;
+      --sans: 'DM Sans', 'Helvetica Neue', sans-serif;
+    }
+
+    ::selection { background: var(--accent); color: var(--bg); }
+    
+    html { scroll-behavior: smooth; }
+    
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--body);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── ANIMATIONS ─── */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+    @keyframes float { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-8px) rotate(-1deg); } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .6; } }
+    @keyframes typewriter { from { width: 0; } to { width: 100%; } }
+    
+    .fade-up { animation: fadeUp .8s ease both; }
+    .fade-up-1 { animation-delay: .1s; }
+    .fade-up-2 { animation-delay: .25s; }
+    .fade-up-3 { animation-delay: .4s; }
+    .fade-up-4 { animation-delay: .55s; }
+    .fade-up-5 { animation-delay: .7s; }
+    
+    .reveal { opacity: 0; transform: translateY(20px); transition: all .7s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    /* ─── HEADER ─── */
+    header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(250, 246, 240, .92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    header .inner {
+      max-width: 1100px; margin: 0 auto; padding: 14px 24px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .logo {
+      font-family: var(--serif); font-size: 20px; font-weight: 800;
+      color: var(--fg); text-decoration: none; letter-spacing: -.3px;
+    }
+    .logo span { color: var(--accent); }
+    header nav { display: flex; gap: 8px; align-items: center; }
+    header nav a {
+      font-family: var(--sans); font-size: 13px; font-weight: 500;
+      color: var(--muted); text-decoration: none; padding: 6px 14px;
+      border-radius: 5px; transition: all .2s;
+    }
+    header nav a:hover { color: var(--fg); background: rgba(0,0,0,.03); }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent); color: var(--bg);
+      font-family: var(--sans); font-size: 13px; font-weight: 500;
+      padding: 9px 20px; border-radius: 6px; border: none; cursor: pointer;
+      text-decoration: none; transition: all .2s; letter-spacing: .2px;
+    }
+    .btn-primary:hover { background: #8B2E3D; transform: translateY(-1px); }
+    .btn-outline {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: transparent; color: var(--fg);
+      font-family: var(--sans); font-size: 13px; font-weight: 500;
+      padding: 9px 20px; border-radius: 6px; border: 1.5px solid var(--border);
+      cursor: pointer; text-decoration: none; transition: all .2s;
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ─── HERO ─── */
+    .hero {
+      padding: 140px 24px 80px;
+      max-width: 1100px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+    }
+    .hero-text h1 {
+      font-family: var(--serif); font-size: clamp(32px, 4.2vw, 52px);
+      font-weight: 700; line-height: 1.12; letter-spacing: -.5px;
+      margin-bottom: 20px;
+    }
+    .hero-text h1 em {
+      font-style: italic; color: var(--accent);
+      font-family: 'Cormorant Garamond', serif; font-weight: 600;
+    }
+    .hero-text .subtitle {
+      font-family: var(--body); font-size: 19px; line-height: 1.65;
+      color: var(--muted); margin-bottom: 32px; max-width: 460px;
+    }
+    .hero-cta {
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    }
+    .hero-cta .btn-primary { padding: 13px 28px; font-size: 14px; }
+    .hero-meta {
+      font-family: var(--sans); font-size: 12px; color: var(--muted);
+      margin-top: 14px; display: flex; gap: 16px;
+    }
+    .hero-meta span { display: flex; align-items: center; gap: 4px; }
+
+    /* Email preview (hero right side) */
+    .email-preview {
+      position: relative;
+      animation: float 6s ease-in-out infinite;
+    }
+    .email-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+      box-shadow: 0 24px 80px rgba(26, 22, 18, .1), 0 4px 16px rgba(26, 22, 18, .06);
+      transform: rotate(-2deg);
+      max-width: 380px; margin-left: auto;
+    }
+    .email-header {
+      background: #FAFAFA; padding: 16px 20px; border-bottom: 1px solid #E8E2DA;
+      text-align: center;
+    }
+    .email-header .brand {
+      font-family: var(--sans); font-size: 9px; letter-spacing: 4px;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+    }
+    .email-header h3 {
+      font-family: var(--serif); font-size: 18px; font-weight: 700; margin-bottom: 2px;
+    }
+    .email-header .author {
+      font-family: var(--body); font-size: 13px; color: var(--muted); font-style: italic;
+    }
+    .email-prelude {
+      margin: 14px 16px 0; padding: 10px 14px;
+      background: #FBF5EC; border-left: 3px solid var(--gold);
+      border-radius: 0 6px 6px 0;
+    }
+    .email-prelude .label {
+      font-family: var(--sans); font-size: 8px; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--gold); margin-bottom: 4px;
+    }
+    .email-prelude p {
+      font-family: var(--body); font-size: 13px; line-height: 1.6; color: #2C2419;
+      font-style: italic;
+    }
+    .email-body {
+      padding: 16px 20px;
+    }
+    .email-body p {
+      font-family: var(--body); font-size: 14px; line-height: 1.75; color: #2C2419;
+      margin-bottom: .8em;
+    }
+    .email-body p:first-child::first-letter {
+      float: left; font-family: var(--serif); font-size: 2.6em;
+      line-height: .78; padding-right: 6px; padding-top: 3px;
+      color: var(--accent); font-weight: 700;
+    }
+    .email-fade {
+      height: 60px;
+      background: linear-gradient(transparent, var(--card));
+      margin-top: -60px; position: relative;
+    }
+    .email-footer {
+      padding: 10px 20px; background: var(--bg);
+      border-top: 1px solid #E8E2DA; text-align: center;
+    }
+    .email-footer p {
+      font-family: var(--sans); font-size: 9px; color: var(--muted);
+    }
+
+    /* Decorative badge on email */
+    .email-badge {
+      position: absolute; top: -12px; right: -8px;
+      background: var(--accent); color: #fff;
+      font-family: var(--sans); font-size: 10px; font-weight: 600;
+      padding: 5px 12px; border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(107, 29, 42, .3);
+      transform: rotate(3deg); z-index: 2;
+    }
+
+    /* ─── SECTION: HOW IT WORKS ─── */
+    .section {
+      padding: 80px 24px;
+      max-width: 1100px; margin: 0 auto;
+    }
+    .section-header {
+      text-align: center; margin-bottom: 56px;
+    }
+    .section-header .eyebrow {
+      font-family: var(--sans); font-size: 11px; font-weight: 600;
+      letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold);
+      margin-bottom: 10px;
+    }
+    .section-header h2 {
+      font-family: var(--serif); font-size: clamp(24px, 3vw, 36px);
+      font-weight: 700; line-height: 1.2; margin-bottom: 12px;
+    }
+    .section-header p {
+      font-family: var(--body); font-size: 17px; color: var(--muted);
+      max-width: 520px; margin: 0 auto; line-height: 1.6;
+    }
+
+    /* Steps */
+    .steps {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px;
+    }
+    .step {
+      text-align: center; padding: 32px 24px;
+      border-radius: 10px; background: var(--card);
+      border: 1px solid var(--border);
+      transition: transform .3s, box-shadow .3s;
+    }
+    .step:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(26, 22, 18, .06);
+    }
+    .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--accent); color: var(--bg);
+      font-family: var(--serif); font-size: 18px; font-weight: 700;
+      margin-bottom: 16px;
+    }
+    .step h3 {
+      font-family: var(--serif); font-size: 18px; font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .step p {
+      font-family: var(--sans); font-size: 13px; color: var(--muted);
+      line-height: 1.55;
+    }
+
+    /* ─── SECTION: SAMPLE PRELUDE ─── */
+    .prelude-section {
+      background: linear-gradient(170deg, #1A1612 0%, #2C2419 100%);
+      padding: 80px 24px;
+      position: relative; overflow: hidden;
+    }
+    .prelude-section::before {
+      content: '"'; position: absolute; top: -40px; left: 5%;
+      font-family: var(--serif); font-size: 400px; color: rgba(255,255,255,.02);
+      line-height: 1; pointer-events: none;
+    }
+    .prelude-inner {
+      max-width: 680px; margin: 0 auto; text-align: center; position: relative;
+    }
+    .prelude-section .eyebrow {
+      font-family: var(--sans); font-size: 11px; letter-spacing: 2.5px;
+      text-transform: uppercase; color: var(--gold); margin-bottom: 16px;
+    }
+    .prelude-section h2 {
+      font-family: var(--serif); font-size: clamp(22px, 3vw, 32px);
+      font-weight: 700; color: #FAF6F0; margin-bottom: 32px; line-height: 1.2;
+    }
+    .prelude-box {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+      border-radius: 10px; padding: 32px; text-align: left;
+      border-left: 3px solid var(--gold);
+    }
+    .prelude-box .book-label {
+      font-family: var(--sans); font-size: 11px; color: var(--gold);
+      letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px;
+    }
+    .prelude-box blockquote {
+      font-family: var(--body); font-size: 19px; line-height: 1.75;
+      color: #D4CCBE; font-style: italic;
+    }
+    .prelude-caption {
+      font-family: var(--sans); font-size: 12px; color: rgba(255,255,255,.35);
+      margin-top: 20px;
+    }
+
+    /* ─── SECTION: LIBRARY PREVIEW ─── */
+    .books-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .book-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; overflow: hidden;
+      transition: transform .3s, box-shadow .3s; cursor: pointer;
+    }
+    .book-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 30px rgba(26, 22, 18, .08);
+    }
+    .book-cover {
+      height: 160px; overflow: hidden; position: relative;
+    }
+    .book-cover img {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .book-cover .overlay {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 50px;
+      background: linear-gradient(transparent, rgba(0,0,0,.5));
+    }
+    .book-cover .ch-count {
+      position: absolute; bottom: 6px; left: 8px;
+      font-family: var(--sans); font-size: 10px; color: rgba(255,255,255,.7);
+      letter-spacing: .6px; text-transform: uppercase;
+    }
+    .book-info { padding: 10px 12px; }
+    .book-info h4 {
+      font-family: var(--serif); font-size: 14px; font-weight: 600; line-height: 1.2;
+      margin-bottom: 2px;
+    }
+    .book-info p {
+      font-family: var(--sans); font-size: 11px; color: var(--muted);
+    }
+
+    /* ─── SECTION: READ WITH FRIENDS ─── */
+    .friends-section {
+      background: var(--warm); padding: 80px 24px;
+    }
+    .friends-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+    }
+    .friends-text h2 {
+      font-family: var(--serif); font-size: clamp(24px, 3vw, 34px);
+      font-weight: 700; line-height: 1.2; margin-bottom: 16px;
+    }
+    .friends-text p {
+      font-family: var(--body); font-size: 17px; color: var(--muted);
+      line-height: 1.65; margin-bottom: 12px;
+    }
+    .friend-feature {
+      display: flex; gap: 12px; align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    .friend-icon {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--accent); color: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .friend-feature h4 {
+      font-family: var(--sans); font-size: 14px; font-weight: 600; margin-bottom: 2px;
+    }
+    .friend-feature p {
+      font-family: var(--sans); font-size: 12px; color: var(--muted); margin: 0;
+    }
+    .friends-visual {
+      display: flex; gap: -20px; justify-content: center; align-items: center;
+    }
+    .inbox-mock {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px; width: 100%; max-width: 360px;
+      box-shadow: 0 8px 40px rgba(26, 22, 18, .08);
+    }
+    .inbox-mock .im-header {
+      font-family: var(--sans); font-size: 11px; color: var(--muted);
+      margin-bottom: 12px; display: flex; justify-content: space-between;
+    }
+    .inbox-item {
+      display: flex; gap: 10px; padding: 10px; border-radius: 6px;
+      border-left: 3px solid transparent; margin-bottom: 6px;
+      transition: background .2s;
+    }
+    .inbox-item.unread {
+      background: #FDFBF7; border-left-color: var(--accent);
+    }
+    .inbox-item .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent); margin-top: 5px; flex-shrink: 0;
+    }
+    .inbox-item h5 {
+      font-family: var(--sans); font-size: 12px; font-weight: 600; margin-bottom: 1px;
+    }
+    .inbox-item .preview {
+      font-family: var(--body); font-size: 11px; color: var(--muted);
+      font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .inbox-item .time {
+      font-family: var(--sans); font-size: 9px; color: var(--muted);
+      flex-shrink: 0; margin-left: auto;
+    }
+
+    /* ─── PRICING ─── */
+    .pricing-section { padding: 80px 24px; }
+    .pricing-inner { max-width: 720px; margin: 0 auto; }
+    .pricing-cards {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 40px;
+    }
+    .price-card {
+      background: var(--card); border: 1.5px solid var(--border);
+      border-radius: 10px; padding: 28px 24px; text-align: center;
+      transition: transform .3s;
+    }
+    .price-card:hover { transform: translateY(-3px); }
+    .price-card.featured {
+      border-color: var(--accent);
+      box-shadow: 0 8px 40px rgba(107, 29, 42, .1);
+      position: relative;
+    }
+    .price-card.featured::before {
+      content: "Most Popular"; position: absolute; top: -11px; left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent); color: var(--bg);
+      font-family: var(--sans); font-size: 10px; font-weight: 600;
+      padding: 3px 14px; border-radius: 10px;
+    }
+    .price-card .price {
+      font-family: var(--serif); font-size: 36px; font-weight: 700; margin: 12px 0 4px;
+    }
+    .price-card .price-sub {
+      font-family: var(--sans); font-size: 12px; color: var(--muted); margin-bottom: 16px;
+    }
+    .price-card .tier-name {
+      font-family: var(--sans); font-size: 13px; font-weight: 600;
+      letter-spacing: 1px; text-transform: uppercase; color: var(--muted);
+    }
+    .price-card ul {
+      list-style: none; text-align: left; margin-top: 16px;
+    }
+    .price-card li {
+      font-family: var(--sans); font-size: 13px; color: var(--muted);
+      padding: 6px 0; border-bottom: 1px solid #F0ECE4;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .price-card li::before {
+      content: "✓"; color: var(--accent); font-weight: 700; font-size: 12px;
+    }
+
+    /* ─── FINAL CTA ─── */
+    .cta-section {
+      background: linear-gradient(170deg, #1A1612, #2C2419);
+      padding: 80px 24px; text-align: center;
+    }
+    .cta-section h2 {
+      font-family: var(--serif); font-size: clamp(24px, 3.5vw, 40px);
+      font-weight: 700; color: #FAF6F0; margin-bottom: 12px; line-height: 1.2;
+    }
+    .cta-section p {
+      font-family: var(--body); font-size: 17px; color: rgba(255,255,255,.5);
+      margin-bottom: 32px; max-width: 480px; margin-left: auto; margin-right: auto;
+    }
+    .cta-form {
+      display: flex; gap: 8px; max-width: 420px; margin: 0 auto;
+    }
+    .cta-form input {
+      flex: 1; padding: 13px 16px; border: 1.5px solid rgba(255,255,255,.15);
+      border-radius: 6px; background: rgba(255,255,255,.06);
+      color: #FAF6F0; font-family: var(--sans); font-size: 14px;
+      outline: none; transition: border-color .2s;
+    }
+    .cta-form input::placeholder { color: rgba(255,255,255,.3); }
+    .cta-form input:focus { border-color: var(--gold); }
+    .cta-form button {
+      padding: 13px 24px; background: var(--gold); color: var(--fg);
+      border: none; border-radius: 6px; font-family: var(--sans);
+      font-size: 14px; font-weight: 600; cursor: pointer; transition: all .2s;
+      white-space: nowrap;
+    }
+    .cta-form button:hover { background: #D4B068; }
+
+    /* ─── FOOTER ─── */
+    footer {
+      background: var(--fg); padding: 40px 24px; text-align: center;
+    }
+    footer .logo-foot {
+      font-family: var(--serif); font-size: 18px; font-weight: 800;
+      color: rgba(255,255,255,.7); margin-bottom: 8px;
+    }
+    footer p {
+      font-family: var(--sans); font-size: 11px; color: rgba(255,255,255,.3);
+      line-height: 1.6;
+    }
+    footer a { color: rgba(255,255,255,.4); text-decoration: none; }
+    footer a:hover { color: var(--gold); }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 768px) {
+      .hero { grid-template-columns: 1fr; gap: 40px; padding-top: 110px; }
+      .email-preview { display: flex; justify-content: center; }
+      .email-card { transform: rotate(0deg); max-width: 340px; margin: 0 auto; }
+      .steps { grid-template-columns: 1fr; }
+      .friends-inner { grid-template-columns: 1fr; gap: 40px; }
+      .pricing-cards { grid-template-columns: 1fr !important; }
+      .cta-form { flex-direction: column; }
+      .books-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="inner">
+      <a href="#" class="logo">The <span>Chapter</span></a>
+      <nav>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#library">Library</a>
+        <a href="#pricing">Pricing</a>
+        <a href="/app" class="btn-primary">Start Reading — Free</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-text">
+      <h1 class="fade-up">The greatest stories were never meant to be <em>binged.</em></h1>
+      <p class="subtitle fade-up fade-up-1">Subscribe to a classic book. Get chapters delivered to your inbox on your schedule — each one introduced by an AI-written prelude that sets the scene.</p>
+      <div class="hero-cta fade-up fade-up-2">
+        <a href="/app" class="btn-primary">Get Chapter 1 Free →</a>
+        <a href="#how-it-works" class="btn-outline">See how it works</a>
+      </div>
+      <div class="hero-meta fade-up fade-up-3">
+        <span>📚 22 classics</span>
+        <span>📧 Your schedule</span>
+        <span>✦ AI preludes</span>
+        <span>👥 Read with friends</span>
+      </div>
+    </div>
+
+    <!-- Email Preview Mock -->
+    <div class="email-preview fade-up fade-up-3">
+      <div class="email-badge">Just delivered ✦</div>
+      <div class="email-card">
+        <div class="email-header">
+          <p class="brand">T H E &ensp; C H A P T E R</p>
+          <h3>Pride and Prejudice</h3>
+          <p class="author">by Jane Austen</p>
+        </div>
+        <div class="email-prelude">
+          <p class="label">Chapter Prelude</p>
+          <p>In the quiet countryside of Hertfordshire, news travels faster than carriages — and nothing moves faster than the prospect of a wealthy, unmarried man arriving in the neighborhood…</p>
+        </div>
+        <div class="email-body">
+          <p>It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.</p>
+          <p>However little known the feelings or views of such a man may be on his first entering a neighbourhood, this truth is so well fixed in the minds of the surrounding families…</p>
+        </div>
+        <div class="email-fade"></div>
+        <div class="email-footer">
+          <p>The Chapter · Classic literature, chapter by chapter</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="section" id="how-it-works">
+    <div class="section-header reveal">
+      <p class="eyebrow">How It Works</p>
+      <h2>Three steps to your literary ritual</h2>
+      <p>No apps to install. No accounts to create. Just your email and a great book.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">1</div>
+        <h3>Pick a book</h3>
+        <p>Browse our library of 22 public domain classics — Austen, Dickens, Homer, Shelley, Brontë, and more.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">2</div>
+        <h3>Choose your pace</h3>
+        <p>Select which days you want chapters delivered and how many per delivery. Monday and Thursday? One chapter? Three? It's your ritual.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">3</div>
+        <h3>Open your inbox</h3>
+        <p>Beautifully formatted chapters arrive on schedule, each with an AI prelude to immerse you in the scene. Invite friends to read along.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRELUDE SHOWCASE -->
+  <section class="prelude-section">
+    <div class="prelude-inner reveal">
+      <p class="eyebrow">AI-Written Preludes</p>
+      <h2>Every chapter begins with context</h2>
+      <div class="prelude-box">
+        <p class="book-label">Frankenstein — Chapter 5</p>
+        <blockquote>The long months of obsession have narrowed to this single, rain-lashed night. In a cramped laboratory lit by a single guttering candle, the line between genius and madness dissolves — and what rises from the table will haunt its creator far longer than any nightmare could.</blockquote>
+      </div>
+      <p class="prelude-caption">Generated by Claude AI · unique for every chapter</p>
+    </div>
+  </section>
+
+  <!-- LIBRARY PREVIEW -->
+  <section class="section" id="library">
+    <div class="section-header reveal">
+      <p class="eyebrow">The Library</p>
+      <h2>Twenty-two classics and counting</h2>
+      <p>From Austen to Homer, Dickens to Shelley. Every text sourced from Wikisource, faithfully reproduced.</p>
+    </div>
+    <div class="books-grid" id="books-container">
+      <!-- Populated by JS below -->
+    </div>
+    <div style="text-align:center;margin-top:32px" class="reveal">
+      <a href="/app" class="btn-primary">Browse Full Library →</a>
+    </div>
+  </section>
+
+  <!-- READ WITH FRIENDS -->
+  <section class="friends-section" id="friends">
+    <div class="friends-inner">
+      <div class="friends-text reveal">
+        <h2>Reading is better together</h2>
+        <p>Add friends when you subscribe and everyone gets the same chapter on the same day. No more "wait, what chapter are you on?"</p>
+        <div class="friend-feature">
+          <div class="friend-icon">📧</div>
+          <div>
+            <h4>Same chapter, same day</h4>
+            <p>Everyone gets the delivery at the same time — perfectly synchronized.</p>
+          </div>
+        </div>
+        <div class="friend-feature">
+          <div class="friend-icon">💬</div>
+          <div>
+            <h4>Built for discussion</h4>
+            <p>Text your group after each chapter. The shared pace creates natural conversation.</p>
+          </div>
+        </div>
+        <div class="friend-feature">
+          <div class="friend-icon">🎁</div>
+          <div>
+            <h4>Gift a subscription</h4>
+            <p>Enter a friend's email and they'll receive the same book on the same schedule you pick.</p>
+          </div>
+        </div>
+      </div>
+      <div class="friends-visual reveal">
+        <div class="inbox-mock">
+          <div class="im-header">
+            <span>📬 Inbox</span>
+            <span style="color:var(--accent);font-weight:600">2 new</span>
+          </div>
+          <div class="inbox-item unread">
+            <div class="dot"></div>
+            <div style="min-width:0;flex:1">
+              <h5>Pride and Prejudice — Ch. 4</h5>
+              <p class="preview">✦ The Bennet sisters return from the ball with hearts full and opinions sharper…</p>
+            </div>
+            <span class="time">2h ago</span>
+          </div>
+          <div class="inbox-item unread">
+            <div class="dot"></div>
+            <div style="min-width:0;flex:1">
+              <h5>Frankenstein — Ch. 12</h5>
+              <p class="preview">✦ In the shadows of the De Lacey cottage, the creature discovers language…</p>
+            </div>
+            <span class="time">2h ago</span>
+          </div>
+          <div class="inbox-item">
+            <div style="width:6px;flex-shrink:0"></div>
+            <div style="min-width:0;flex:1">
+              <h5 style="font-weight:400;color:var(--muted)">Sherlock Holmes — Ch. 3</h5>
+              <p class="preview">✦ The case of the Red-Headed League takes its first peculiar turn…</p>
+            </div>
+            <span class="time">1d ago</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="pricing-section" id="pricing">
+    <div class="pricing-inner" style="max-width:900px">
+      <div class="section-header reveal">
+        <p class="eyebrow">Simple Pricing</p>
+        <h2>Start free. Stay for the story.</h2>
+        <p>Every book starts with a free trial. Fall in love with the pace, then unlock the full library.</p>
+      </div>
+      <div class="pricing-cards" style="grid-template-columns:repeat(3,1fr)">
+        <div class="price-card reveal">
+          <p class="tier-name">Free Trial</p>
+          <p class="price">$0</p>
+          <p class="price-sub">forever</p>
+          <ul>
+            <li>First 3 chapters of any book</li>
+            <li>AI preludes included</li>
+            <li>Custom delivery schedule</li>
+            <li>Invite friends to read along</li>
+          </ul>
+          <div style="margin-top:20px">
+            <a href="/app" class="btn-outline" style="width:100%;justify-content:center">Start Free</a>
+          </div>
+        </div>
+        <div class="price-card featured reveal">
+          <p class="tier-name">Monthly</p>
+          <p class="price">$5</p>
+          <p class="price-sub">per month</p>
+          <ul>
+            <li>Unlimited books &amp; chapters</li>
+            <li>AI preludes for every chapter</li>
+            <li>Custom schedule &amp; pacing</li>
+            <li>Read with unlimited friends</li>
+            <li>Cancel anytime</li>
+          </ul>
+          <div style="margin-top:20px">
+            <a href="/app" class="btn-primary" style="width:100%;justify-content:center">Get Started</a>
+          </div>
+        </div>
+        <div class="price-card reveal">
+          <p class="tier-name">Annual</p>
+          <p class="price">$40</p>
+          <p class="price-sub">per year <span style="color:var(--accent);font-weight:600">(save 33%)</span></p>
+          <ul>
+            <li>Everything in Monthly</li>
+            <li>2 months free</li>
+            <li>Lock in the best price</li>
+            <li>Support the project</li>
+          </ul>
+          <div style="margin-top:20px">
+            <a href="/app" class="btn-outline" style="width:100%;justify-content:center;border-color:var(--accent);color:var(--accent)">Save 33%</a>
+          </div>
+        </div>
+      </div>
+      <p class="reveal" style="text-align:center;font-family:var(--sans);font-size:12px;color:var(--muted);margin-top:20px">Or unlock a single book for $3 — one-time, keep forever.</p>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="cta-section">
+    <h2 class="reveal">Start your first book tonight.</h2>
+    <p class="reveal">Enter your email and get Chapter 1 of Pride and Prejudice in your inbox in under a minute.</p>
+    <form class="cta-form reveal" onsubmit="handleCTA(event)">
+      <input type="email" id="cta-email" placeholder="Your email address" required>
+      <button type="submit">Send Chapter 1 →</button>
+    </form>
+    <p class="reveal" style="font-family:var(--sans);font-size:11px;color:rgba(255,255,255,.25);margin-top:12px">No account needed. Unsubscribe anytime.</p>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p class="logo-foot">The Chapter</p>
+    <p>Classic literature delivered to your inbox, chapter by chapter.<br>
+    Texts sourced from <a href="https://wikisource.org" target="_blank">Wikisource</a>. AI preludes by <a href="https://anthropic.com" target="_blank">Claude</a>.</p>
+    <p style="margin-top:12px">
+      <a href="/app">Open App</a> · 
+      <a href="mailto:cole@whetstoneadvisory.com">Contact</a>
+    </p>
+  </footer>
+
+  <script>
+    // Reveal on scroll
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+    // Book grid
+    const books = [
+      { title: "Pride and Prejudice", author: "Jane Austen", ch: 61, img: "Arthur_Hughes_-_The_Long_Engagement_-_Google_Art_Project.jpg" },
+      { title: "Jane Eyre", author: "Charlotte Brontë", ch: 38, img: "Caspar_David_Friedrich_-_Wanderer_above_the_sea_of_fog.jpg" },
+      { title: "Frankenstein", author: "Mary Shelley", ch: 24, img: "Caspar_David_Friedrich_-_The_Sea_of_Ice_-_WGA09138.jpg" },
+      { title: "Great Expectations", author: "Charles Dickens", ch: 59, img: "Atkinson_Grimshaw_-_Moonlight_on_the_Thames_at_Greenwich.jpg" },
+      { title: "A Tale of Two Cities", author: "Charles Dickens", ch: 15, img: "Eugène_Delacroix_-_Le_28_Juillet._La_Liberté_guidant_le_peuple.jpg" },
+      { title: "The Odyssey", author: "Homer", ch: 24, img: "Waterhouse-Ulysses_and_the_Sirens.jpg" },
+      { title: "Sherlock Holmes", author: "Arthur Conan Doyle", ch: 12, img: "Strand_paget.jpg" },
+      { title: "Dracula", author: "Bram Stoker", ch: 27, img: "Caspar_David_Friedrich_-_Abtei_im_Eichwald_-_Google_Art_Project.jpg" },
+      { title: "Dorian Gray", author: "Oscar Wilde", ch: 20, img: "Ivan_Kramskoi_-_Christ_in_the_Wilderness_-_Google_Art_Project.jpg" },
+      { title: "Wuthering Heights", author: "Emily Brontë", ch: 34, img: "Caspar_David_Friedrich_-_Two_Men_Contemplating_the_Moon.jpg" },
+    ];
+    const grid = document.getElementById('books-container');
+    books.forEach((b, i) => {
+      const card = document.createElement('div');
+      card.className = 'book-card reveal';
+      card.style.transitionDelay = `${i * .06}s`;
+      card.onclick = () => window.location.href = '/app';
+      card.innerHTML = `
+        <div class="book-cover">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(b.img)}?width=400" alt="${b.title}" loading="lazy">
+          <div class="overlay"></div>
+          <span class="ch-count">${b.ch} chapters</span>
+        </div>
+        <div class="book-info">
+          <h4>${b.title}</h4>
+          <p>${b.author}</p>
+        </div>`;
+      grid.appendChild(card);
+      obs.observe(card);
+    });
+
+    // CTA form
+    function handleCTA(e) {
+      e.preventDefault();
+      const email = document.getElementById('cta-email').value;
+      if (email) {
+        // Redirect to app with email pre-filled
+        window.location.href = `/app?email=${encodeURIComponent(email)}&book=pp`;
+      }
+    }
+  </script>
+</body>
+</html>
