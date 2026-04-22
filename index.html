@@ -10,8 +10,13 @@
   <meta property="og:title" content="The Chapter — Classic Literature, Chapter by Chapter">
   <meta property="og:description" content="The greatest stories were never meant to be binged. Get chapters delivered to your inbox on your schedule.">
   <meta property="og:type" content="website">
-  <meta property="og:image" content="/og-image.jpg">
+  <meta property="og:url" content="https://the-chapter-one.vercel.app/">
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="The Chapter — Classic Literature, Chapter by Chapter">
+  <meta name="twitter:description" content="The greatest stories were never meant to be binged.">
+  <!-- og:image intentionally omitted until a real 1200×630 image is added at /public/og-image.jpg -->
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%236B1D2A'/%3E%3Ctext x='50%25' y='62%25' text-anchor='middle' font-family='Georgia,serif' font-size='38' font-weight='700' fill='%23FAF6F0'%3EC%3C/text%3E%3C/svg%3E">
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&display=swap" rel="stylesheet">
@@ -196,9 +201,10 @@
       font-family: var(--sans); font-size: 9px; color: var(--muted);
     }
 
-    /* Decorative badge on email */
+    /* Decorative badge on email — positioned inside the card edge so it
+       doesn't clip off-screen at narrow viewports. */
     .email-badge {
-      position: absolute; top: -12px; right: -8px;
+      position: absolute; top: 8px; right: 12px;
       background: var(--accent); color: #fff;
       font-family: var(--sans); font-size: 10px; font-weight: 600;
       padding: 5px 12px; border-radius: 20px;
@@ -770,28 +776,49 @@
     }, { threshold: 0.15 });
     document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 
-    // Book grid
+    // Book grid — full 22-title library, mirroring src/App.jsx BOOKS array.
+    // Wikimedia Special:FilePath fails intermittently for some images, so each
+    // card has a tinted background that matches the book's accent color and
+    // an onerror fallback that swaps to a generated SVG cover.
     const books = [
-      { title: "Pride and Prejudice", author: "Jane Austen", ch: 61, img: "Arthur_Hughes_-_The_Long_Engagement_-_Google_Art_Project.jpg" },
-      { title: "Jane Eyre", author: "Charlotte Brontë", ch: 38, img: "Caspar_David_Friedrich_-_Wanderer_above_the_sea_of_fog.jpg" },
-      { title: "Frankenstein", author: "Mary Shelley", ch: 24, img: "Caspar_David_Friedrich_-_The_Sea_of_Ice_-_WGA09138.jpg" },
-      { title: "Great Expectations", author: "Charles Dickens", ch: 59, img: "Atkinson_Grimshaw_-_Moonlight_on_the_Thames_at_Greenwich.jpg" },
-      { title: "A Tale of Two Cities", author: "Charles Dickens", ch: 15, img: "Eugène_Delacroix_-_Le_28_Juillet._La_Liberté_guidant_le_peuple.jpg" },
-      { title: "The Odyssey", author: "Homer", ch: 24, img: "Waterhouse-Ulysses_and_the_Sirens.jpg" },
-      { title: "Sherlock Holmes", author: "Arthur Conan Doyle", ch: 12, img: "Strand_paget.jpg" },
-      { title: "Dracula", author: "Bram Stoker", ch: 27, img: "Caspar_David_Friedrich_-_Abtei_im_Eichwald_-_Google_Art_Project.jpg" },
-      { title: "Dorian Gray", author: "Oscar Wilde", ch: 20, img: "Ivan_Kramskoi_-_Christ_in_the_Wilderness_-_Google_Art_Project.jpg" },
-      { title: "Wuthering Heights", author: "Emily Brontë", ch: 34, img: "Caspar_David_Friedrich_-_Two_Men_Contemplating_the_Moon.jpg" },
+      { id:"pp",     title:"Pride and Prejudice",         author:"Jane Austen",          ch:61, img:"Arthur_Hughes_-_The_Long_Engagement_-_Google_Art_Project.jpg",                color:"#3A5A3A" },
+      { id:"ttc",    title:"A Tale of Two Cities",        author:"Charles Dickens",      ch:45, img:"Eugène_Delacroix_-_Le_28_Juillet._La_Liberté_guidant_le_peuple.jpg",         color:"#3E2723" },
+      { id:"ge",     title:"Great Expectations",          author:"Charles Dickens",      ch:59, img:"Atkinson_Grimshaw_-_Moonlight_on_the_Thames_at_Greenwich.jpg",                color:"#1A2632" },
+      { id:"cc",     title:"A Christmas Carol",           author:"Charles Dickens",      ch:5,  img:"Marley's_Ghost-John_Leech,_1843.jpg",                                          color:"#1A3A2A" },
+      { id:"je",     title:"Jane Eyre",                   author:"Charlotte Brontë",     ch:38, img:"Caspar_David_Friedrich_-_Wanderer_above_the_sea_of_fog.jpg",                  color:"#2A3A4A" },
+      { id:"wh",     title:"Wuthering Heights",           author:"Emily Brontë",         ch:34, img:"Caspar_David_Friedrich_-_Two_Men_Contemplating_the_Moon.jpg",                 color:"#1A1A2A" },
+      { id:"frank",  title:"Frankenstein",                author:"Mary Shelley",         ch:24, img:"Caspar_David_Friedrich_-_The_Sea_of_Ice_-_WGA09138.jpg",                      color:"#1A2A3A" },
+      { id:"drac",   title:"Dracula",                     author:"Bram Stoker",          ch:27, img:"Caspar_David_Friedrich_-_Abtei_im_Eichwald_-_Google_Art_Project.jpg",         color:"#0D0D1A" },
+      { id:"ss",     title:"Sense and Sensibility",       author:"Jane Austen",          ch:50, img:"Thomas_Gainsborough_-_The_Morning_Walk.jpg",                                   color:"#4A5A3A" },
+      { id:"emma",   title:"Emma",                        author:"Jane Austen",          ch:55, img:"Charles_Edward_Perugini_-_Girl_Reading.jpg",                                   color:"#5A4A3A" },
+      { id:"ti",     title:"Treasure Island",             author:"R. L. Stevenson",      ch:34, img:"N.C._Wyeth_-_Treasure_Island,_1911_-_p047.jpg",                               color:"#1E3A4A" },
+      { id:"tess",   title:"Tess of the d'Urbervilles",   author:"Thomas Hardy",         ch:59, img:"George_Clausen_-_Summer_Afternoon.jpg",                                       color:"#5A4A2A" },
+      { id:"dq",     title:"Don Quixote",                 author:"Miguel de Cervantes",  ch:52, img:"Honoré_Daumier_-_Don_Quixote_and_Sancho_Panza_-_WGA5961.jpg",                 color:"#5A3A1A" },
+      { id:"mc",     title:"The Count of Monte Cristo",   author:"Alexandre Dumas",      ch:40, img:"The_Château_d'If.jpg",                                                         color:"#1A3A4A" },
+      { id:"odyss",  title:"The Odyssey",                 author:"Homer",                ch:24, img:"Waterhouse-Ulysses_and_the_Sirens.jpg",                                       color:"#1A4A5A" },
+      { id:"war",    title:"The Art of War",              author:"Sun Tzu",              ch:13, img:"Erta_Rivale%2C_Italian._The_Fall_of_Jericho%2C_ca._1920.jpg",                 color:"#4A1A1A" },
+      { id:"med",    title:"Meditations",                 author:"Marcus Aurelius",      ch:12, img:"Bronze_equestrian_statue_of_Marcus_Aurelius.jpg",                             color:"#3A3A5A" },
+      { id:"rep",    title:"The Republic",                author:"Plato",                ch:10, img:"Sanzio_01.jpg",                                                                color:"#2A3A1A" },
+      { id:"prince", title:"The Prince",                  author:"Niccolò Machiavelli",  ch:26, img:"Santi_di_Tito_-_Niccolo_Machiavelli's_portrait_headcrop.jpg",                 color:"#2A1A1A" },
+      { id:"alice",  title:"Alice in Wonderland",         author:"Lewis Carroll",        ch:12, img:"Alice_par_John_Tenniel_04.png",                                                color:"#4A5A6A" },
+      { id:"dorian", title:"The Picture of Dorian Gray",  author:"Oscar Wilde",          ch:20, img:"Ivan_Kramskoi_-_Christ_in_the_Wilderness_-_Google_Art_Project.jpg",           color:"#2A2A1A" },
+      { id:"sher",   title:"Adventures of Sherlock Holmes", author:"Arthur Conan Doyle", ch:12, img:"Strand_paget.jpg",                                                             color:"#3A2A1A" },
     ];
+    function genCoverDataUri(title, author, color) {
+      const t = title.length > 30 ? title.slice(0, 28) + '…' : title;
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='320'><rect width='400' height='320' fill='${color}'/><text x='50%' y='52%' text-anchor='middle' fill='rgba(255,255,255,.85)' font-family='Georgia,serif' font-size='22' font-weight='600'>${t.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</text><text x='50%' y='62%' text-anchor='middle' fill='rgba(255,255,255,.55)' font-family='Helvetica,sans-serif' font-size='13'>${author.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</text></svg>`;
+      return 'data:image/svg+xml,' + encodeURIComponent(svg);
+    }
     const grid = document.getElementById('books-container');
     books.forEach((b, i) => {
       const card = document.createElement('div');
       card.className = 'book-card reveal';
-      card.style.transitionDelay = `${i * .06}s`;
-      card.onclick = () => window.location.href = '/app';
+      card.style.transitionDelay = `${Math.min(i, 12) * .04}s`;
+      card.onclick = () => window.location.href = `/app?book=${b.id}`;
+      const fallback = genCoverDataUri(b.title, b.author, b.color).replace(/'/g, "&#39;");
       card.innerHTML = `
-        <div class="book-cover">
-          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(b.img)}?width=400" alt="${b.title}" loading="lazy">
+        <div class="book-cover" style="background:${b.color}">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(b.img)}?width=400" alt="${b.title}" loading="lazy" onerror="this.onerror=null;this.src='${fallback}';">
           <div class="overlay"></div>
           <span class="ch-count">${b.ch} chapters</span>
         </div>

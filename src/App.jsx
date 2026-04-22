@@ -51,20 +51,32 @@ const BOOKS = [
   { id:"pp", title:"Pride and Prejudice", author:"Jane Austen", year:1813, genre:"Romance", chapters:61,
     wsPage:(n)=>`Pride_and_Prejudice/Chapter_${n}`,
     imgFile:"Arthur_Hughes_-_The_Long_Engagement_-_Google_Art_Project.jpg", color:"#3A5A3A", featured:true },
-  { id:"ttc", title:"A Tale of Two Cities", author:"Charles Dickens", year:1859, genre:"Historical Fiction", chapters:15,
-    wsPage:(n)=>{const bk=n<=6?["Book_the_First",n]:n<=9?["Book_the_Second",n-6]:["Book_the_Third",n-9];const rom=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV"];return`A_Tale_of_Two_Cities/${bk[0]}/Chapter_${rom[bk[1]]}`;},
+  { id:"ttc", title:"A Tale of Two Cities", author:"Charles Dickens", year:1859, genre:"Historical Fiction", chapters:45,
+    // Three Books: I (6 chapters), II (24), III (15). Total 45.
+    wsPage:(n)=>{
+      const ROM=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV"];
+      let book, ch;
+      if (n <= 6) { book = "Book_the_First"; ch = n; }
+      else if (n <= 30) { book = "Book_the_Second"; ch = n - 6; }
+      else if (n <= 45) { book = "Book_the_Third"; ch = n - 30; }
+      else return null;
+      return `A_Tale_of_Two_Cities/${book}/Chapter_${ROM[ch]}`;
+    },
     imgFile:"Eugène_Delacroix_-_Le_28_Juillet._La_Liberté_guidant_le_peuple.jpg", color:"#3E2723", featured:true },
   { id:"ge", title:"Great Expectations", author:"Charles Dickens", year:1861, genre:"Coming of Age", chapters:59,
-    wsPage:(n)=>`Great_Expectations/Chapter_${n}`,
+    // Wikisource only has the (1890) edition under this exact path; uses Roman numerals.
+    wsPage:(n)=>{const ROM=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV","XXV","XXVI","XXVII","XXVIII","XXIX","XXX","XXXI","XXXII","XXXIII","XXXIV","XXXV","XXXVI","XXXVII","XXXVIII","XXXIX","XL","XLI","XLII","XLIII","XLIV","XLV","XLVI","XLVII","XLVIII","XLIX","L","LI","LII","LIII","LIV","LV","LVI","LVII","LVIII","LIX"]; return ROM[n]?`Great_Expectations_(1890)/Chapter_${ROM[n]}`:null;},
     imgFile:"Atkinson_Grimshaw_-_Moonlight_on_the_Thames_at_Greenwich.jpg", color:"#1A2632", featured:true },
   { id:"cc", title:"A Christmas Carol", author:"Charles Dickens", year:1843, genre:"Novella", chapters:5,
-    wsPage:(n)=>`A_Christmas_Carol/Stave_${n}`,
+    wsPage:(n)=>`A_Christmas_Carol_(Dickens,_1843)/Stave_${n}`,
     imgFile:"Marley's_Ghost-John_Leech,_1843.jpg", color:"#1A3A2A" },
   { id:"je", title:"Jane Eyre", author:"Charlotte Brontë", year:1847, genre:"Gothic Romance", chapters:38,
     wsPage:(n)=>{const rom=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV","XXV","XXVI","XXVII","XXVIII","XXIX","XXX","XXXI","XXXII","XXXIII","XXXIV","XXXV","XXXVI","XXXVII","XXXVIII"];return`Jane_Eyre_(1st_edition)/Chapter_${rom[n]}`;},
     imgFile:"Caspar_David_Friedrich_-_Wanderer_above_the_sea_of_fog.jpg", color:"#2A3A4A", featured:true },
   { id:"wh", title:"Wuthering Heights", author:"Emily Brontë", year:1847, genre:"Gothic Fiction", chapters:34,
-    wsPage:(n)=>`Wuthering_Heights/Chapter_${n}`,
+    // Wikisource doesn't expose Wuthering Heights at a clean per-chapter path
+    // (it only links to volume index pages). Falls back to Claude API.
+    wsPage:null,
     imgFile:"Caspar_David_Friedrich_-_Two_Men_Contemplating_the_Moon.jpg", color:"#1A1A2A" },
   { id:"frank", title:"Frankenstein", author:"Mary Shelley", year:1818, genre:"Gothic Horror", chapters:24,
     wsPage:null,
@@ -82,7 +94,9 @@ const BOOKS = [
     wsPage:(n)=>`Treasure_Island/Chapter_${n}`,
     imgFile:"N.C._Wyeth_-_Treasure_Island,_1911_-_p047.jpg", color:"#1E3A4A" },
   { id:"tess", title:"Tess of the d'Urbervilles", author:"Thomas Hardy", year:1891, genre:"Tragedy", chapters:59,
-    wsPage:(n)=>`Tess_of_the_d'Urbervilles/Phase_the_First/Chapter_${n}`,
+    // Wikisource organizes Tess into Volumes 1–3 with nested phases; no clean
+    // per-chapter path. Falls back to Claude API.
+    wsPage:null,
     imgFile:"George_Clausen_-_Summer_Afternoon.jpg", color:"#5A4A2A" },
   { id:"dq", title:"Don Quixote", author:"Miguel de Cervantes", year:1605, genre:"Satire", chapters:52,
     wsPage:null,
@@ -94,7 +108,8 @@ const BOOKS = [
     wsPage:(n)=>`The_Odyssey_(Butler)/Book_${["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV"][n]}`,
     imgFile:"Waterhouse-Ulysses_and_the_Sirens.jpg", color:"#1A4A5A" },
   { id:"war", title:"The Art of War", author:"Sun Tzu (Giles transl.)", year:-500, genre:"Philosophy", chapters:13,
-    wsPage:(n)=>`The_Art_of_War_(Sun)/Chapter_${n}`,
+    // Wikisource uses the chapter NAMES as page slugs, not numbers.
+    wsPage:(n)=>{const NAMES=["","Laying_Plans","Waging_War","Attack_by_Stratagem","Tactical_Dispositions","Energy","Weak_Points_and_Strong","Maneuvering","Variation_in_Tactics","The_Army_on_the_March","Terrain","The_Nine_Situations","The_Attack_by_Fire","The_Use_of_Spies"]; return NAMES[n]?`The_Art_of_War_(Giles)/${NAMES[n]}`:null;},
     imgFile:"Erta_Rivale%2C_Italian._The_Fall_of_Jericho%2C_ca._1920.jpg", color:"#4A1A1A" },
   { id:"med", title:"Meditations", author:"Marcus Aurelius", year:180, genre:"Philosophy", chapters:12,
     wsPage:null,
@@ -103,7 +118,8 @@ const BOOKS = [
     wsPage:null,
     imgFile:"Sanzio_01.jpg", color:"#2A3A1A" },
   { id:"prince", title:"The Prince", author:"Niccolò Machiavelli", year:1532, genre:"Political Philosophy", chapters:26,
-    wsPage:(n)=>`The_Prince_(Hill)/Chapter_${n}`,
+    // Wikisource uses the (Hill_Thomson) translation, with Roman numeral chapters.
+    wsPage:(n)=>{const ROM=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV","XXV","XXVI"]; return ROM[n]?`The_Prince_(Hill_Thomson)/Chapter_${ROM[n]}`:null;},
     imgFile:"Santi_di_Tito_-_Niccolo_Machiavelli's_portrait_headcrop.jpg", color:"#2A1A1A" },
   { id:"alice", title:"Alice in Wonderland", author:"Lewis Carroll", year:1865, genre:"Fantasy", chapters:12,
     wsPage:(n)=>`Alice's_Adventures_in_Wonderland_(1866)/Chapter_${n}`,
@@ -121,7 +137,10 @@ async function fetchChapterWS(page) {
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 6000); // 6s timeout
-    const url = `https://en.wikisource.org/w/api.php?action=parse&page=${encodeURIComponent(page)}&prop=text&format=json&origin=*`;
+    // redirects=1 is critical: Wikisource has moved most works to year-stamped
+    // titles (e.g. Pride_and_Prejudice → Pride_and_Prejudice_(1817)). Without
+    // this flag the API returns the redirect stub and we extract zero text.
+    const url = `https://en.wikisource.org/w/api.php?action=parse&page=${encodeURIComponent(page)}&prop=text&format=json&origin=*&redirects=1`;
     const r = await fetch(url, { signal: ctrl.signal }); clearTimeout(timer); if (!r.ok) return null;
     const d = await r.json(); if (!d?.parse?.text?.["*"]) return null;
     const html = d.parse.text["*"];
@@ -175,10 +194,16 @@ async function sendEmail(to, subject, html, text) {
   if (!EMAIL_API_URL) return { ok: false, error: "Email not configured" };
   const recipients = Array.isArray(to) ? to : [to];
   try {
+    const origin = (typeof window !== "undefined" && window.location?.origin) || "https://the-chapter-one.vercel.app";
     const r = await fetch(EMAIL_API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ to: recipients, subject, html, text }),
+      body: JSON.stringify({
+        to: recipients, subject, html, text,
+        // Surfaced as List-Unsubscribe / List-Unsubscribe-Post headers by the
+        // serverless function. Required by Gmail/Yahoo bulk-sender rules.
+        unsubscribeUrl: `${origin}/app#unsubscribe`,
+      }),
     });
     if (r.ok) return { ok: true, ...(await r.json()) };
     const err = await r.json().catch(() => ({}));
@@ -207,6 +232,9 @@ function buildEmailHTML(book, chapters) {
     return `<h2 style="font-family:Georgia,serif;font-size:19px;color:#6B1D2A;margin:28px 0 8px">Chapter ${esc(ch.chNum)} <span style="font-size:13px;color:#8A7E73;font-weight:400">of ${esc(book.chapters)}</span></h2>${pre}${paras}`;
   }).join('<hr style="border:none;border-top:1px solid #DDD5CA;margin:36px 0">');
 
+  // Origin used in the unsubscribe link. Falls back to the live site so the
+  // email-test path still produces a clickable link.
+  const origin = (typeof window !== "undefined" && window.location?.origin) || "https://the-chapter-one.vercel.app";
   return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#FAF6F0;font-family:Helvetica,Arial,sans-serif">
 <div style="max-width:600px;margin:0 auto;background:#fff;border:1px solid #E8E2DA">
 <div style="padding:24px;border-bottom:1px solid #E8E2DA;text-align:center">
@@ -218,7 +246,12 @@ function buildEmailHTML(book, chapters) {
 </div>
 <div style="padding:28px 24px">${chBlocks}</div>
 <div style="padding:20px 24px;border-top:1px solid #E8E2DA;text-align:center;background:#FAF6F0">
-  <p style="font-size:11px;color:#8A7E73;margin:0">Sent by The Chapter · Classic literature, chapter by chapter</p>
+  <p style="font-size:11px;color:#8A7E73;margin:0 0 6px">Sent by The Chapter · Classic literature, chapter by chapter</p>
+  <p style="font-size:11px;color:#8A7E73;margin:0">
+    <a href="${origin}/app" style="color:#8A7E73;text-decoration:underline">Manage subscriptions</a>
+    &nbsp;·&nbsp;
+    <a href="${origin}/app#unsubscribe" style="color:#8A7E73;text-decoration:underline">Unsubscribe</a>
+  </p>
 </div>
 </div></body></html>`;
 }
@@ -318,8 +351,21 @@ function GenCover({ title, author, color, w, h }) {
 
 function CoverImg({ book, style, w, h }) {
   const [err, setErr] = useState(false);
+  // The Wikimedia Special:FilePath endpoint is unreliable from the browser
+  // (intermittent CDN errors, anti-hotlink behavior). Hide the broken-image
+  // icon and the alt-text by giving the img a tinted background — the SVG
+  // fallback rendered on `err` is the same color, so the swap is invisible.
   if (!book.imgFile || err) return <GenCover title={book.title} author={book.author} color={book.color} w={w||80} h={h||110} />;
-  return <img src={imgUrl(book.imgFile, w > 200 ? 800 : 400)} alt={book.title} style={{...style, objectFit:"cover"}} onError={()=>setErr(true)} loading="lazy" />;
+  const fallbackBg = book.color || "#3A3A3A";
+  return (
+    <img
+      src={imgUrl(book.imgFile, w > 200 ? 800 : 400)}
+      alt={book.title}
+      style={{...style, objectFit:"cover", background: fallbackBg, color: "transparent"}}
+      onError={()=>setErr(true)}
+      loading="lazy"
+    />
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -351,6 +397,10 @@ export default function App() {
   const [inboxItem, setInboxItem] = useState(null);
   const [delivering, setDelivering] = useState(false);
   const [settingsFor, setSettingsFor] = useState(null);
+  // Draft copy of the subscription being edited in the settings modal. We keep
+  // this separate from `subs` so Cancel discards changes — the previous
+  // implementation wrote on every keystroke and Cancel was a no-op.
+  const [settingsDraft, setSettingsDraft] = useState(null);
   const [userPlan, setUserPlan] = useState("free"); // "free" | "monthly" | "annual"
   const tts = useTTS();
   const subsRef = useRef(subs);
@@ -386,7 +436,7 @@ export default function App() {
         setBook(b);
         setView("book");
         setTimeout(() => {
-          setSubModal({ bookId: b.id, step: 1, email: email || userEmail || "", days: [1, 3, 5], cpd: 1, friends: "", plan: "free" });
+          setSubModal({ bookId: b.id, email: email || userEmail || "", days: [1, 3, 5], cpd: 1, friends: "", plan: "free" });
         }, 400);
       }
     }
@@ -606,7 +656,17 @@ export default function App() {
   // Helpers
   const readTime = (t) => t ? Math.max(1,Math.ceil(t.split(/\s+/).length/250)) : 0;
   const curSub = book ? getSub(book.id) : null;
-  const timeAgo = (d) => { const s=Math.floor((Date.now()-new Date(d).getTime())/1000); if(s<60) return "Just now"; if(s<3600) return `${Math.floor(s/60)}m ago`; if(s<86400) return `${Math.floor(s/3600)}h ago`; return `${Math.floor(s/86400)}d ago`; };
+  const timeAgo = (d) => {
+    const dt = new Date(d);
+    const s = Math.floor((Date.now() - dt.getTime()) / 1000);
+    if (s < 60) return "Just now";
+    if (s < 3600) return `${Math.floor(s/60)}m ago`;
+    if (s < 86400) return `${Math.floor(s/3600)}h ago`;
+    const days = Math.floor(s / 86400);
+    if (days < 30) return `${days}d ago`;
+    // After 30 days, show the actual date — "47d ago" is harder to parse than "Mar 12".
+    return dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  };
   const schedLabel = (days,cpd) => { if(!days?.length) return "No schedule"; const d=days.sort((a,b)=>a-b).map(i=>DAYS[i]).join(", "); return `${cpd} ch. on ${d}`; };
 
   const themes = { light:{bg:"#FFF",fg:"#1A1612",mt:"#8A7E73",bd:"#E8E2DA",card:"#FAFAFA"}, sepia:{bg:"#FBF5EC",fg:"#2C2419",mt:"#8A7E6A",bd:"#E0D6C8",card:"#F5EFE4"}, dark:{bg:"#1C1914",fg:"#D4CCBE",mt:"#7A7164",bd:"#2E2A24",card:"#252119"} };
@@ -787,7 +847,7 @@ export default function App() {
                   <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73"}}>{book.chapters} chapters · First {FREE_CHAPTERS} free, then ${PRICE_MONTHLY}/mo · AI preludes · Read with friends</p>
                 </div>
               </div>
-              <button className="b bp" style={{width:"100%",justifyContent:"center",padding:"13px 20px",fontSize:14}} onClick={()=>setSubModal({bookId:book.id,step:1,email:userEmail,days:[1,3,5],cpd:1,friends:"",plan:"free"})}>
+              <button className="b bp" style={{width:"100%",justifyContent:"center",padding:"13px 20px",fontSize:14}} onClick={()=>setSubModal({bookId:book.id,email:userEmail,days:[1,3,5],cpd:1,friends:"",plan:"free"})}>
                 Start Reading — Free
               </button>
               <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A7E73",textAlign:"center",marginTop:6}}>Enter your email, pick your schedule, get Chapter 1 instantly.</p>
@@ -802,14 +862,17 @@ export default function App() {
                   <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A7E73",marginTop:2}}>📧 {curSub.email} · {schedLabel(curSub.scheduleDays,curSub.chaptersPerDelivery)}</p>
                 </div>
                 <div style={{display:"flex",gap:4}}>
-                  <button className="b bg" onClick={()=>setSettingsFor(book.id)}>⚙</button>
+                  <button className="b bg" onClick={()=>{
+                    const s = getSub(book.id);
+                    if (s) { setSettingsDraft({email:s.email, scheduleDays:[...(s.scheduleDays||[])], chaptersPerDelivery:s.chaptersPerDelivery||1, friends:[...(s.friends||[])]}); setSettingsFor(book.id); }
+                  }}>⚙</button>
                   <button className="b bg" onClick={()=>saveSubs(subs.map(s=>s.bookId===book.id?{...s,paused:!s.paused}:s))}>{curSub.paused?"▶":"⏸"}</button>
                 </div>
               </div>
               <div className="prg" style={{marginBottom:4}}><div className="prg-f" style={{width:`${Math.round((curSub.currentChapter/book.chapters)*100)}%`}} /></div>
               <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#8A7E73"}}>Ch. {curSub.currentChapter}/{book.chapters} · {Math.round((curSub.currentChapter/book.chapters)*100)}%</p>
               <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
-                {curSub.plan==="free"&&curSub.currentChapter>=FREE_CHAPTERS&&<button className="b bp" onClick={()=>setSubModal({bookId:book.id,step:1,email:curSub.email,days:curSub.scheduleDays||[1,3,5],cpd:curSub.chaptersPerDelivery||1,friends:(curSub.friends||[]).join(", "),plan:"monthly",isUpgrade:true})}>Upgrade — ${PRICE_MONTHLY}/mo for unlimited</button>}
+                {curSub.plan==="free"&&curSub.currentChapter>=FREE_CHAPTERS&&<button className="b bp" onClick={()=>setSubModal({bookId:book.id,email:curSub.email,days:curSub.scheduleDays||[1,3,5],cpd:curSub.chaptersPerDelivery||1,friends:(curSub.friends||[]).join(", "),plan:"monthly",isUpgrade:true})}>Upgrade — ${PRICE_MONTHLY}/mo for unlimited</button>}
                 <button className="b bo" onClick={()=>nav("inbox")}>View Inbox</button>
                 <button className="b bo" onClick={()=>readCh(book,Math.min(curSub.currentChapter+1,book.chapters))}>Read in App</button>
               </div>
@@ -1106,22 +1169,24 @@ export default function App() {
       })()}
 
       {/* ═══ SETTINGS MODAL ═══ */}
-      {settingsFor&&(()=>{
-        const sub=getSub(settingsFor); const b=BOOKS.find(x=>x.id===settingsFor);
-        if(!sub||!b) return null;
-        const [sf,setSf] = [sub, (fn)=>saveSubs(subs.map(s=>s.bookId===settingsFor?fn(s):s))];
-        return <div className="mod-bg" onClick={e=>e.target===e.currentTarget&&setSettingsFor(null)}><div className="mod">
+      {settingsFor && settingsDraft && (()=>{
+        const b=BOOKS.find(x=>x.id===settingsFor);
+        if(!b) return null;
+        const sd = settingsDraft;
+        const close = () => { setSettingsFor(null); setSettingsDraft(null); };
+        const valid = sd.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sd.email) && (sd.scheduleDays||[]).length > 0;
+        return <div className="mod-bg" onClick={e=>e.target===e.currentTarget&&close()}><div className="mod">
           <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:600,marginBottom:12}}>Settings — {b.title}</h2>
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             <div>
               <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:500,display:"block",marginBottom:4}}>Email</label>
-              <input value={sf.email} onChange={e=>setSf(s=>({...s,email:e.target.value}))} />
+              <input value={sd.email} onChange={e=>setSettingsDraft(s=>({...s,email:e.target.value}))} />
             </div>
             <div>
               <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:500,display:"block",marginBottom:6}}>Delivery days</label>
               <div style={{display:"flex",gap:6,justifyContent:"center"}}>
                 {DAYS.map((d,i)=>(
-                  <button key={i} className={`dayB ${sf.scheduleDays?.includes(i)?"on":""}`} onClick={()=>setSf(s=>{
+                  <button key={i} className={`dayB ${sd.scheduleDays?.includes(i)?"on":""}`} onClick={()=>setSettingsDraft(s=>{
                     const cur=s.scheduleDays||[];
                     return {...s, scheduleDays: cur.includes(i)?cur.filter(x=>x!==i):[...cur,i].sort((a,b)=>a-b)};
                   })}>{d}</button>
@@ -1131,16 +1196,20 @@ export default function App() {
             <div>
               <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:500,display:"block",marginBottom:4}}>Chapters per delivery</label>
               <div style={{display:"flex",gap:6}}>
-                {[1,2,3,4,5].map(n=><button key={n} onClick={()=>setSf(s=>({...s,chaptersPerDelivery:n}))} style={{flex:1,padding:"8px 0",borderRadius:6,border:`1.5px solid ${sf.chaptersPerDelivery===n?"#6B1D2A":"#DDD5CA"}`,background:sf.chaptersPerDelivery===n?"#6B1D2A":"#fff",color:sf.chaptersPerDelivery===n?"#FAF6F0":"#8A7E73",fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:sf.chaptersPerDelivery===n?600:400,cursor:"pointer"}}>{n}</button>)}
+                {[1,2,3,4,5].map(n=><button key={n} onClick={()=>setSettingsDraft(s=>({...s,chaptersPerDelivery:n}))} style={{flex:1,padding:"8px 0",borderRadius:6,border:`1.5px solid ${sd.chaptersPerDelivery===n?"#6B1D2A":"#DDD5CA"}`,background:sd.chaptersPerDelivery===n?"#6B1D2A":"#fff",color:sd.chaptersPerDelivery===n?"#FAF6F0":"#8A7E73",fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:sd.chaptersPerDelivery===n?600:400,cursor:"pointer"}}>{n}</button>)}
               </div>
             </div>
             <div>
               <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:500,display:"block",marginBottom:4}}>Friends</label>
-              <input value={(sf.friends||[]).join(", ")} onChange={e=>setSf(s=>({...s,friends:e.target.value.split(",").map(x=>x.trim()).filter(Boolean)}))} placeholder="friend@email.com" />
+              <input value={(sd.friends||[]).join(", ")} onChange={e=>setSettingsDraft(s=>({...s,friends:e.target.value.split(",").map(x=>x.trim()).filter(Boolean)}))} placeholder="friend@email.com" />
             </div>
             <div style={{display:"flex",gap:6}}>
-              <button className="b bp" style={{flex:1}} onClick={()=>{setSettingsFor(null);showToast("Settings saved.","success");}}>Save</button>
-              <button className="b bo" onClick={()=>setSettingsFor(null)}>Cancel</button>
+              <button className="b bp" style={{flex:1}} disabled={!valid} onClick={()=>{
+                saveSubs(subs.map(s=>s.bookId===settingsFor?{...s,email:sd.email,scheduleDays:sd.scheduleDays,chaptersPerDelivery:sd.chaptersPerDelivery,friends:sd.friends}:s));
+                close();
+                showToast("Settings saved.","success");
+              }}>Save</button>
+              <button className="b bo" onClick={close}>Cancel</button>
             </div>
           </div>
         </div></div>;

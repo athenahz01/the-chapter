@@ -40,7 +40,7 @@ export default async function handler(req, res) {
   if (typeof body === "string") {
     try { body = JSON.parse(body); } catch { body = {}; }
   }
-  const { to, subject, html, text } = body || {};
+  const { to, subject, html, text, unsubscribeUrl } = body || {};
 
   if (!to || !subject) {
     return res.status(400).json({ ok: false, error: "Missing required fields: to, subject" });
@@ -59,6 +59,23 @@ export default async function handler(req, res) {
     return res.status(500).json({ ok: false, error: "RESEND_API_KEY not configured" });
   }
 
+  // Build the Resend payload. List-Unsubscribe headers are required by
+  // Gmail/Yahoo's bulk-sender rules (Feb 2024). Without them mail is
+  // increasingly likely to land in spam or be rejected outright.
+  const payload = {
+    from: fromEmail,
+    to: clean,
+    subject: String(subject).slice(0, 998), // RFC 5322 subject line limit
+    html: html || "",
+    text: text || "",
+  };
+  if (unsubscribeUrl && /^https?:\/\//.test(unsubscribeUrl)) {
+    payload.headers = {
+      "List-Unsubscribe": `<${unsubscribeUrl}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    };
+  }
+
   try {
     const response = await fetch(RESEND_URL, {
       method: "POST",
@@ -66,13 +83,7 @@ export default async function handler(req, res) {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: clean,
-        subject: String(subject).slice(0, 998), // RFC 5322 subject line limit
-        html: html || "",
-        text: text || "",
-      }),
+      body: JSON.stringify(payload),
     });
 
     const data = await response.json().catch(() => ({}));
