@@ -307,48 +307,49 @@
     /* ─── SECTION: BOOKS SHOWCASE ─── */
     /* Rotating featured book — large cover on left, prose detail on right.
        Designed to look CLEARLY different from the SPA library grid: this is
-       editorial showcase, not a browse-and-filter UI. */
+       editorial showcase, not a browse-and-filter UI. Sized to fit a normal
+       laptop viewport (~720-900px tall) without forcing the user to scroll. */
     .featured-book {
-      max-width: 1000px; margin: 0 auto;
-      display: grid; grid-template-columns: 1fr 1.2fr; gap: 48px;
+      max-width: 880px; margin: 0 auto;
+      display: grid; grid-template-columns: 240px 1fr; gap: 36px;
       align-items: center;
       background: var(--card); border: 1px solid var(--border);
-      border-radius: 12px; padding: 40px;
+      border-radius: 12px; padding: 28px 32px;
       box-shadow: 0 12px 40px rgba(26, 22, 18, .06);
     }
     .fb-cover {
-      aspect-ratio: 3/4; max-width: 320px; width: 100%;
+      aspect-ratio: 3/4; width: 240px;
       border-radius: 6px; overflow: hidden;
-      box-shadow: 0 16px 48px rgba(26, 22, 18, .25);
-      transition: transform .6s, box-shadow .6s;
+      box-shadow: 0 12px 32px rgba(26, 22, 18, .22);
+      transition: opacity .25s;
     }
     #fb-cover { width: 100%; height: 100%; }
     #fb-cover img { width: 100%; height: 100%; display: block; }
     .fb-eyebrow {
       font-family: var(--sans); font-size: 11px; letter-spacing: 2.5px;
-      text-transform: uppercase; color: var(--accent); margin-bottom: 12px;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
     }
     .fb-text h3 {
-      font-family: var(--serif); font-size: clamp(28px, 4vw, 40px);
-      font-weight: 700; line-height: 1.1; margin-bottom: 8px;
+      font-family: var(--serif); font-size: clamp(24px, 3.4vw, 34px);
+      font-weight: 700; line-height: 1.1; margin-bottom: 6px;
     }
     .fb-author {
-      font-family: 'Cormorant Garamond', serif; font-size: 18px;
-      font-style: italic; color: var(--muted); margin-bottom: 18px;
+      font-family: 'Cormorant Garamond', serif; font-size: 17px;
+      font-style: italic; color: var(--muted); margin-bottom: 14px;
     }
     .fb-blurb {
-      font-family: var(--body); font-size: 15.5px; line-height: 1.65;
-      color: var(--text); margin-bottom: 22px;
+      font-family: var(--body); font-size: 15px; line-height: 1.6;
+      color: var(--text); margin-bottom: 16px;
     }
     .fb-meta {
       display: flex; gap: 8px; align-items: center;
       font-family: var(--sans); font-size: 12px; color: var(--muted);
-      margin-bottom: 22px;
+      margin-bottom: 18px;
     }
     .fb-dot { color: var(--accent); }
     .fb-cta { display: inline-flex; }
     .fb-dots {
-      display: flex; gap: 8px; margin-top: 22px;
+      display: flex; gap: 8px; margin-top: 18px;
     }
     .fb-dots button {
       width: 8px; height: 8px; padding: 0; border: none; border-radius: 50%;
@@ -356,14 +357,14 @@
     }
     .fb-dots button.active { background: var(--accent); width: 24px; border-radius: 4px; }
     @media (max-width: 720px) {
-      .featured-book { grid-template-columns: 1fr; gap: 24px; padding: 24px; }
-      .fb-cover { max-width: 240px; margin: 0 auto; }
+      .featured-book { grid-template-columns: 1fr; gap: 20px; padding: 22px; }
+      .fb-cover { width: 200px; margin: 0 auto; }
     }
 
     /* Featured authors — horizontal strip with names + book counts.
        No imagery, just typographic presence. Hovering reveals subtle warmth. */
     .authors-strip {
-      max-width: 1000px; margin: 64px auto 0; padding: 0 8px;
+      max-width: 1000px; margin: 48px auto 0; padding: 0 8px;
     }
     .eyebrow.centered { text-align: center; margin-bottom: 28px; }
     .authors-grid {
@@ -704,7 +705,7 @@
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:48px" class="reveal">
+    <div style="text-align:center;margin-top:36px" class="reveal">
       <a href="/app" class="btn-primary">Browse all 80+ books →</a>
       <p style="font-family:var(--sans);font-size:12px;color:var(--muted);margin-top:10px">Search by title, filter by genre, subscribe in one click.</p>
     </div>
@@ -908,13 +909,16 @@
     function renderFeatured(idx) {
       const b = featured[idx];
       const cover = document.getElementById('fb-cover');
-      const img = new Image();
-      img.src = genCoverDataUri(b.title, b.author, b.accent, b.motif);
-      img.alt = `${b.title} by ${b.author}`;
-      img.style.opacity = '0';
-      img.onload = () => { img.style.transition = 'opacity .4s'; img.style.opacity = '1'; };
-      cover.innerHTML = '';
-      cover.appendChild(img);
+      // Build the new cover and crossfade by swapping the inner HTML directly.
+      // (Earlier version used img.onload + opacity which is unreliable for data
+      // URIs — they load synchronously and onload may fire before the listener
+      // attaches, leaving the image permanently invisible.)
+      cover.style.transition = 'opacity .25s';
+      cover.style.opacity = '0';
+      setTimeout(() => {
+        cover.innerHTML = `<img src="${genCoverDataUri(b.title, b.author, b.accent, b.motif)}" alt="${escXml(b.title)} by ${escXml(b.author)}" style="width:100%;height:100%;display:block">`;
+        cover.style.opacity = '1';
+      }, 200);
       const fields = [
         ['fb-genre', b.genre],
         ['fb-title', b.title],
