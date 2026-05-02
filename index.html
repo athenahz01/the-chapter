@@ -304,42 +304,86 @@
       margin-top: 20px;
     }
 
-    /* ─── SECTION: LIBRARY PREVIEW ─── */
-    .books-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 16px;
-    }
-    .book-card {
+    /* ─── SECTION: BOOKS SHOWCASE ─── */
+    /* Rotating featured book — large cover on left, prose detail on right.
+       Designed to look CLEARLY different from the SPA library grid: this is
+       editorial showcase, not a browse-and-filter UI. */
+    .featured-book {
+      max-width: 1000px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1.2fr; gap: 48px;
+      align-items: center;
       background: var(--card); border: 1px solid var(--border);
-      border-radius: 8px; overflow: hidden;
-      transition: transform .3s, box-shadow .3s; cursor: pointer;
+      border-radius: 12px; padding: 40px;
+      box-shadow: 0 12px 40px rgba(26, 22, 18, .06);
     }
-    .book-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 30px rgba(26, 22, 18, .08);
+    .fb-cover {
+      aspect-ratio: 3/4; max-width: 320px; width: 100%;
+      border-radius: 6px; overflow: hidden;
+      box-shadow: 0 16px 48px rgba(26, 22, 18, .25);
+      transition: transform .6s, box-shadow .6s;
     }
-    .book-cover {
-      height: 160px; overflow: hidden; position: relative;
+    #fb-cover { width: 100%; height: 100%; }
+    #fb-cover img { width: 100%; height: 100%; display: block; }
+    .fb-eyebrow {
+      font-family: var(--sans); font-size: 11px; letter-spacing: 2.5px;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 12px;
     }
-    .book-cover img {
-      width: 100%; height: 100%; object-fit: cover;
+    .fb-text h3 {
+      font-family: var(--serif); font-size: clamp(28px, 4vw, 40px);
+      font-weight: 700; line-height: 1.1; margin-bottom: 8px;
     }
-    .book-cover .overlay {
-      position: absolute; bottom: 0; left: 0; right: 0; height: 50px;
-      background: linear-gradient(transparent, rgba(0,0,0,.5));
+    .fb-author {
+      font-family: 'Cormorant Garamond', serif; font-size: 18px;
+      font-style: italic; color: var(--muted); margin-bottom: 18px;
     }
-    .book-cover .ch-count {
-      position: absolute; bottom: 6px; left: 8px;
-      font-family: var(--sans); font-size: 10px; color: rgba(255,255,255,.7);
-      letter-spacing: .6px; text-transform: uppercase;
+    .fb-blurb {
+      font-family: var(--body); font-size: 15.5px; line-height: 1.65;
+      color: var(--text); margin-bottom: 22px;
     }
-    .book-info { padding: 10px 12px; }
-    .book-info h4 {
-      font-family: var(--serif); font-size: 14px; font-weight: 600; line-height: 1.2;
-      margin-bottom: 2px;
+    .fb-meta {
+      display: flex; gap: 8px; align-items: center;
+      font-family: var(--sans); font-size: 12px; color: var(--muted);
+      margin-bottom: 22px;
     }
-    .book-info p {
+    .fb-dot { color: var(--accent); }
+    .fb-cta { display: inline-flex; }
+    .fb-dots {
+      display: flex; gap: 8px; margin-top: 22px;
+    }
+    .fb-dots button {
+      width: 8px; height: 8px; padding: 0; border: none; border-radius: 50%;
+      background: var(--border); cursor: pointer; transition: all .25s;
+    }
+    .fb-dots button.active { background: var(--accent); width: 24px; border-radius: 4px; }
+    @media (max-width: 720px) {
+      .featured-book { grid-template-columns: 1fr; gap: 24px; padding: 24px; }
+      .fb-cover { max-width: 240px; margin: 0 auto; }
+    }
+
+    /* Featured authors — horizontal strip with names + book counts.
+       No imagery, just typographic presence. Hovering reveals subtle warmth. */
+    .authors-strip {
+      max-width: 1000px; margin: 64px auto 0; padding: 0 8px;
+    }
+    .eyebrow.centered { text-align: center; margin-bottom: 28px; }
+    .authors-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1px; background: var(--border);
+      border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+    }
+    .author-cell {
+      background: var(--card); padding: 18px 22px;
+      display: flex; flex-direction: column; gap: 4px;
+      transition: background .2s;
+    }
+    .author-cell:hover { background: #FBF5EA; }
+    .a-name {
+      font-family: var(--serif); font-size: 16px; font-weight: 600;
+      color: var(--text);
+    }
+    .a-count {
       font-family: var(--sans); font-size: 11px; color: var(--muted);
+      letter-spacing: .3px;
     }
 
     /* ─── SECTION: READ WITH FRIENDS ─── */
@@ -524,7 +568,7 @@
       <a href="#" class="logo">The <span>Chapter</span></a>
       <nav>
         <a href="#how-it-works">How It Works</a>
-        <a href="#library">Library</a>
+        <a href="#books">Books</a>
         <a href="#pricing">Pricing</a>
         <a href="/app" class="btn-primary">Start Reading — Free</a>
       </nav>
@@ -612,18 +656,57 @@
     </div>
   </section>
 
-  <!-- LIBRARY PREVIEW -->
-  <section class="section" id="library">
+  <!-- BOOKS SHOWCASE
+       Marketing preview — does NOT try to be a library. Three components:
+       (1) rotating featured book in detail, (2) authors strip with book counts,
+       (3) clear CTA into the actual library inside the app. -->
+  <section class="section" id="books">
     <div class="section-header reveal">
-      <p class="eyebrow">The Library</p>
-      <h2>Eighty classics and counting</h2>
+      <p class="eyebrow">The Books</p>
+      <h2>Eighty classics. Eleven masters.</h2>
       <p>From Dickens to Dostoevsky, Tolstoy to Twain. The greatest novels of the last two centuries — every text in the public domain, faithfully reproduced and chaptered for your inbox.</p>
     </div>
-    <div class="books-grid" id="books-container">
-      <!-- Populated by JS below -->
+
+    <!-- Rotating featured book -->
+    <div class="featured-book reveal" id="featured-book">
+      <div class="fb-cover" id="fb-cover-wrap"><div id="fb-cover"></div></div>
+      <div class="fb-text">
+        <p class="fb-eyebrow" id="fb-genre">Historical Fiction</p>
+        <h3 id="fb-title">A Tale of Two Cities</h3>
+        <p class="fb-author" id="fb-author">Charles Dickens · 1859</p>
+        <p class="fb-blurb" id="fb-blurb">Resurrection, revolution, and a sacrificial love that haunts London and Paris in the shadow of the guillotine. Dickens at his most propulsive — 45 chapters delivered on the schedule you choose.</p>
+        <div class="fb-meta">
+          <span id="fb-chapters">45 chapters</span>
+          <span class="fb-dot">·</span>
+          <span>First 3 free</span>
+        </div>
+        <a href="/app" class="btn-primary fb-cta">Subscribe to this book →</a>
+        <div class="fb-dots" id="fb-dots"></div>
+      </div>
     </div>
-    <div style="text-align:center;margin-top:32px" class="reveal">
-      <a href="/app" class="btn-primary">Browse Full Library →</a>
+
+    <!-- Featured authors strip -->
+    <div class="authors-strip reveal">
+      <p class="eyebrow centered">Featured Authors</p>
+      <div class="authors-grid">
+        <div class="author-cell"><span class="a-name">Charles Dickens</span><span class="a-count">15 books</span></div>
+        <div class="author-cell"><span class="a-name">Alexandre Dumas</span><span class="a-count">10 books</span></div>
+        <div class="author-cell"><span class="a-name">Fyodor Dostoevsky</span><span class="a-count">8 books</span></div>
+        <div class="author-cell"><span class="a-name">Wilkie Collins</span><span class="a-count">6 books</span></div>
+        <div class="author-cell"><span class="a-name">Arthur Conan Doyle</span><span class="a-count">6 books</span></div>
+        <div class="author-cell"><span class="a-name">Jules Verne</span><span class="a-count">6 books</span></div>
+        <div class="author-cell"><span class="a-name">Mark Twain</span><span class="a-count">5 books</span></div>
+        <div class="author-cell"><span class="a-name">Henry James</span><span class="a-count">5 books</span></div>
+        <div class="author-cell"><span class="a-name">Joseph Conrad</span><span class="a-count">4 books</span></div>
+        <div class="author-cell"><span class="a-name">Leo Tolstoy</span><span class="a-count">4 books</span></div>
+        <div class="author-cell"><span class="a-name">Victor Hugo</span><span class="a-count">3 books</span></div>
+        <div class="author-cell"><span class="a-name">Plus 12 more classics</span><span class="a-count">Austen, Brontë, Stoker…</span></div>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:48px" class="reveal">
+      <a href="/app" class="btn-primary">Browse all 80+ books →</a>
+      <p style="font-family:var(--sans);font-size:12px;color:var(--muted);margin-top:10px">Search by title, filter by genre, subscribe in one click.</p>
     </div>
   </section>
 
@@ -776,64 +859,32 @@
     }, { threshold: 0.15 });
     document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 
-    // Book grid — featured selection from the full 83-book catalog.
-    // Covers are generated as inline SVG (same system used in src/App.jsx)
-    // so nothing depends on external image hosts. The full library lives in
-    // the app — this is just a "what's available" preview.
-    const books = [
-      // Dickens
-      { id:"oliver",       title:"Oliver Twist",                  author:"Charles Dickens",     ch:53,  motif:"O", accent:"#3A2A1A" },
-      { id:"copperfield",  title:"David Copperfield",             author:"Charles Dickens",     ch:64,  motif:"D", accent:"#2A3A4A" },
-      { id:"ttc",          title:"A Tale of Two Cities",          author:"Charles Dickens",     ch:45,  motif:"T", accent:"#3E2723" },
-      { id:"ge",           title:"Great Expectations",            author:"Charles Dickens",     ch:59,  motif:"G", accent:"#1A2632" },
-      { id:"bleakhouse",   title:"Bleak House",                   author:"Charles Dickens",     ch:67,  motif:"B", accent:"#1A1A2A" },
-      // Dumas
-      { id:"mc",           title:"The Count of Monte Cristo",     author:"Alexandre Dumas",     ch:117, motif:"M", accent:"#1A3A4A" },
-      { id:"musketeers",   title:"The Three Musketeers",          author:"Alexandre Dumas",     ch:67,  motif:"3", accent:"#4A1A1A" },
-      { id:"ironmask",     title:"The Man in the Iron Mask",      author:"Alexandre Dumas",     ch:53,  motif:"I", accent:"#1A1A1A" },
-      // Dostoevsky
-      { id:"crime",        title:"Crime and Punishment",          author:"Fyodor Dostoevsky",   ch:41,  motif:"C", accent:"#3A1A1A" },
-      { id:"karamazov",    title:"The Brothers Karamazov",        author:"Fyodor Dostoevsky",   ch:96,  motif:"K", accent:"#2A2A3A" },
-      { id:"idiot",        title:"The Idiot",                     author:"Fyodor Dostoevsky",   ch:46,  motif:"I", accent:"#2A1A2A" },
-      // Tolstoy
-      { id:"warpeace",     title:"War and Peace",                 author:"Leo Tolstoy",         ch:361, motif:"W", accent:"#2A3A2A" },
-      { id:"karenina",     title:"Anna Karenina",                 author:"Leo Tolstoy",         ch:239, motif:"A", accent:"#3A2A2A" },
-      // Hugo
-      { id:"miserables",   title:"Les Misérables",                author:"Victor Hugo",         ch:365, motif:"M", accent:"#1A2A3A" },
-      { id:"hunchback",    title:"The Hunchback of Notre-Dame",   author:"Victor Hugo",         ch:59,  motif:"H", accent:"#2A1A2A" },
-      // Twain
-      { id:"huck",         title:"Adventures of Huckleberry Finn",author:"Mark Twain",          ch:43,  motif:"H", accent:"#2A3A2A" },
-      { id:"tomsawyer",    title:"The Adventures of Tom Sawyer",  author:"Mark Twain",          ch:35,  motif:"T", accent:"#3A2A1A" },
-      // Conan Doyle
-      { id:"sher",         title:"The Adventures of Sherlock Holmes", author:"Arthur Conan Doyle", ch:12, motif:"S", accent:"#3A2A1A" },
-      { id:"baskervilles", title:"The Hound of the Baskervilles", author:"Arthur Conan Doyle",  ch:15,  motif:"H", accent:"#1A2A1A" },
-      // Verne
-      { id:"eightydays",   title:"Around the World in Eighty Days", author:"Jules Verne",       ch:37,  motif:"8", accent:"#2A3A4A" },
-      { id:"twentyleagues",title:"Twenty Thousand Leagues Under the Seas", author:"Jules Verne", ch:46, motif:"2", accent:"#1A2A4A" },
-      // Conrad
-      { id:"heartdarkness",title:"Heart of Darkness",             author:"Joseph Conrad",       ch:3,   motif:"H", accent:"#1A1A1A" },
-      // Collins
-      { id:"moonstone",    title:"The Moonstone",                 author:"Wilkie Collins",      ch:44,  motif:"M", accent:"#2A2A4A" },
-      { id:"womaninwhite", title:"The Woman in White",            author:"Wilkie Collins",      ch:120, motif:"W", accent:"#3A3A4A" },
-      // James
-      { id:"portrait",     title:"The Portrait of a Lady",        author:"Henry James",         ch:55,  motif:"P", accent:"#3A2A2A" },
-      // Other classics (kept from original catalog)
-      { id:"pp",           title:"Pride and Prejudice",           author:"Jane Austen",         ch:61,  motif:"P", accent:"#3A5A3A" },
-      { id:"je",           title:"Jane Eyre",                     author:"Charlotte Brontë",    ch:38,  motif:"J", accent:"#2A3A4A" },
-      { id:"frank",        title:"Frankenstein",                  author:"Mary Shelley",        ch:24,  motif:"F", accent:"#1A2A3A" },
-      { id:"drac",         title:"Dracula",                       author:"Bram Stoker",         ch:27,  motif:"D", accent:"#0D0D1A" },
-      { id:"alice",        title:"Alice in Wonderland",           author:"Lewis Carroll",       ch:12,  motif:"A", accent:"#4A5A6A" },
+    // Rotating featured book carousel — auto-advances every 7s, dots clickable.
+    // Five hand-picked picks span the catalog: classic Dickens, propulsive
+    // adventure, Russian literature, gothic mystery, French epic.
+    const featured = [
+      { id:"ttc", title:"A Tale of Two Cities", author:"Charles Dickens", year:1859,
+        genre:"Historical Fiction", ch:45, motif:"T", accent:"#3E2723",
+        blurb:"Resurrection, revolution, and a sacrificial love that haunts London and Paris in the shadow of the guillotine. Dickens at his most propulsive — 45 chapters delivered on the schedule you choose." },
+      { id:"crime", title:"Crime and Punishment", author:"Fyodor Dostoevsky", year:1866,
+        genre:"Psychological Fiction", ch:41, motif:"C", accent:"#3A1A1A",
+        blurb:"A starving student in St. Petersburg commits the perfect murder, then unravels under the weight of his own conscience. Forty-one chapters of moral torment that invented the modern psychological novel." },
+      { id:"mc", title:"The Count of Monte Cristo", author:"Alexandre Dumas", year:1844,
+        genre:"Adventure", ch:117, motif:"M", accent:"#1A3A4A",
+        blurb:"Edmond Dantès is betrayed, imprisoned, and forgotten — until he escapes and returns as the wealthiest, most patient man in Europe to take revenge. 117 chapters of pure narrative momentum." },
+      { id:"baskervilles", title:"The Hound of the Baskervilles", author:"Arthur Conan Doyle", year:1902,
+        genre:"Mystery", ch:15, motif:"H", accent:"#1A2A1A",
+        blurb:"A spectral hound stalks the Devonshire moors. The heir to a haunted estate has just returned from Canada. Holmes and Watson have fifteen chapters to solve it — and one of literature\'s most atmospheric mysteries to navigate." },
+      { id:"miserables", title:"Les Misérables", author:"Victor Hugo", year:1862,
+        genre:"Historical Fiction", ch:365, motif:"M", accent:"#1A2A3A",
+        blurb:"Jean Valjean steals a loaf of bread and spends a lifetime running from it. Hugo\'s masterpiece is also a quietly perfect candidate for chapter-by-chapter delivery: 365 short chapters, one per day for a year." },
     ];
 
-    // Generated SVG cover — same design language as the in-app covers.
-    // Letter motif on a colored ground, gold rule, title underneath, italic
-    // author. No external image dependencies, never breaks.
     function escXml(s) {
       return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;");
     }
     function genCoverDataUri(title, author, accent, motif) {
-      const w = 480, h = 300;
-      const titleClipped = title.length > 38 ? title.slice(0, 36).trim() + "…" : title;
+      const w = 480, h = 640;
       const motifChar = motif || (title?.[0] || "B").toUpperCase();
       const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}' viewBox='0 0 ${w} ${h}'>
         <defs>
@@ -843,34 +894,67 @@
           </linearGradient>
         </defs>
         <rect width='${w}' height='${h}' fill='url(%23g)'/>
-        <rect x='${w*0.06}' y='${h*0.05}' width='${w*0.88}' height='${h*0.9}' fill='none' stroke='rgba(255,255,255,0.18)' stroke-width='1.2'/>
-        <text x='${w/2}' y='${h*0.45}' text-anchor='middle' fill='rgba(255,255,255,0.92)' font-family='Playfair Display, Georgia, serif' font-size='110' font-weight='700' dominant-baseline='middle'>${escXml(motifChar)}</text>
-        <line x1='${w*0.30}' y1='${h*0.65}' x2='${w*0.70}' y2='${h*0.65}' stroke='rgba(184,150,78,0.85)' stroke-width='1'/>
-        <text x='${w/2}' y='${h*0.78}' text-anchor='middle' fill='rgba(255,255,255,0.95)' font-family='Playfair Display, Georgia, serif' font-size='20' font-weight='600'>${escXml(titleClipped)}</text>
-        <text x='${w/2}' y='${h*0.88}' text-anchor='middle' fill='rgba(255,255,255,0.62)' font-family='DM Sans, sans-serif' font-size='14' font-style='italic'>${escXml(author)}</text>
+        <rect x='${w*0.06}' y='${h*0.05}' width='${w*0.88}' height='${h*0.9}' fill='none' stroke='rgba(255,255,255,0.18)' stroke-width='1.5'/>
+        <text x='${w/2}' y='${h*0.40}' text-anchor='middle' fill='rgba(255,255,255,0.92)' font-family='Playfair Display, Georgia, serif' font-size='220' font-weight='700' dominant-baseline='middle'>${escXml(motifChar)}</text>
+        <line x1='${w*0.30}' y1='${h*0.62}' x2='${w*0.70}' y2='${h*0.62}' stroke='rgba(184,150,78,0.85)' stroke-width='1.5'/>
+        <text x='${w/2}' y='${h*0.74}' text-anchor='middle' fill='rgba(255,255,255,0.95)' font-family='Playfair Display, Georgia, serif' font-size='28' font-weight='600'>${escXml(title.length > 30 ? title.slice(0, 28) + "…" : title)}</text>
+        <text x='${w/2}' y='${h*0.82}' text-anchor='middle' fill='rgba(255,255,255,0.62)' font-family='DM Sans, sans-serif' font-size='18' font-style='italic'>${escXml(author)}</text>
       </svg>`;
       return 'data:image/svg+xml,' + encodeURIComponent(svg);
     }
-    const grid = document.getElementById('books-container');
-    books.forEach((b, i) => {
-      const card = document.createElement('div');
-      card.className = 'book-card reveal';
-      card.style.transitionDelay = `${Math.min(i, 12) * .04}s`;
-      card.onclick = () => window.location.href = `/app?book=${b.id}`;
-      const coverSrc = genCoverDataUri(b.title, b.author, b.accent, b.motif);
-      card.innerHTML = `
-        <div class="book-cover" style="background:${b.accent}">
-          <img src="${coverSrc}" alt="${b.title} by ${b.author}" loading="lazy">
-          <div class="overlay"></div>
-          <span class="ch-count">${b.ch} ${b.ch === 1 ? 'chapter' : 'chapters'}</span>
-        </div>
-        <div class="book-info">
-          <h4>${b.title}</h4>
-          <p>${b.author}</p>
-        </div>`;
-      grid.appendChild(card);
-      obs.observe(card);
+
+    let fbIdx = 0;
+    let fbTimer = null;
+    function renderFeatured(idx) {
+      const b = featured[idx];
+      const cover = document.getElementById('fb-cover');
+      const img = new Image();
+      img.src = genCoverDataUri(b.title, b.author, b.accent, b.motif);
+      img.alt = `${b.title} by ${b.author}`;
+      img.style.opacity = '0';
+      img.onload = () => { img.style.transition = 'opacity .4s'; img.style.opacity = '1'; };
+      cover.innerHTML = '';
+      cover.appendChild(img);
+      const fields = [
+        ['fb-genre', b.genre],
+        ['fb-title', b.title],
+        ['fb-author', `${b.author} · ${b.year}`],
+        ['fb-blurb', b.blurb],
+        ['fb-chapters', `${b.ch} chapters`],
+      ];
+      fields.forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        el.style.transition = 'opacity .25s';
+        el.style.opacity = '0';
+        setTimeout(() => { el.textContent = val; el.style.opacity = '1'; }, 200);
+      });
+      document.querySelector('.fb-cta').href = `/app?book=${b.id}`;
+      document.querySelectorAll('#fb-dots button').forEach((d, i) => {
+        d.classList.toggle('active', i === idx);
+      });
+    }
+
+    const dotsContainer = document.getElementById('fb-dots');
+    featured.forEach((_, i) => {
+      const dot = document.createElement('button');
+      dot.setAttribute('aria-label', `Show featured book ${i+1}`);
+      dot.onclick = () => { fbIdx = i; renderFeatured(fbIdx); resetTimer(); };
+      dotsContainer.appendChild(dot);
     });
+
+    function advance() {
+      fbIdx = (fbIdx + 1) % featured.length;
+      renderFeatured(fbIdx);
+    }
+    function resetTimer() {
+      if (fbTimer) clearInterval(fbTimer);
+      fbTimer = setInterval(advance, 7000);
+    }
+    renderFeatured(0);
+    resetTimer();
+    const fbWrap = document.getElementById('featured-book');
+    fbWrap.addEventListener('mouseenter', () => { if (fbTimer) clearInterval(fbTimer); });
+    fbWrap.addEventListener('mouseleave', resetTimer);
 
     // CTA form
     function handleCTA(e) {
