@@ -493,19 +493,34 @@ function useTTS() {
 // ─── SVG COVER GENERATOR ───────────────────────────────────────
 // Generates a clean, typographic cover using only an accent color + a single
 // motif letter. No external images = nothing to break, nothing to wait on.
-function GenCover({ title, author, accent, motif, w, h }) {
+//
+// `bare` mode: omits the title and author text inside the SVG. Use this when
+// the cover is shown alongside a separately-rendered title label (e.g. card
+// thumbnails, inbox items, modal previews) — otherwise the title appears
+// twice. `bare` defaults to true on small thumbnails, false on standalone.
+function GenCover({ title, author, accent, motif, w, h, bare }) {
   const bg = accent || "#3A3A3A";
-  // Subtle texture: faint diagonal lines + vignette gradient.
   const motifChar = motif || (title?.[0] || "B").toUpperCase();
+  // Auto-bare for thumbnails — at small sizes title text is illegible anyway.
+  const isBare = bare ?? (w < 140);
+  // Motif scales with available space. In bare mode it can grow larger
+  // since there's no title text taking up the bottom half.
+  const motifSize = isBare
+    ? Math.min(w, h) * 0.55
+    : (w < 120 ? 36 : (w < 200 ? 56 : 84));
+  const motifY = isBare ? h * 0.55 : h * 0.42;
+  // Bare mode: just the motif + a thin gold rule beneath, no text.
   const titleClipped = title.length > 38 ? title.slice(0, 36).trim() + "…" : title;
   const titleSize = w < 120 ? 9 : (w < 200 ? 11 : 14);
   const authorSize = w < 120 ? 7 : (w < 200 ? 8 : 10);
-  const motifSize = w < 120 ? 36 : (w < 200 ? 56 : 84);
-  // Simulate a thin gold rule above the title, like a real cover plate.
-  const ruleY = h * 0.62;
-  const motifY = h * 0.42;
+  const ruleY = isBare ? h * 0.78 : h * 0.62;
   const titleY = h * 0.78;
   const authorY = h * 0.88;
+  const textBlock = isBare ? '' : `
+    <text x="${w/2}" y="${titleY}" text-anchor="middle" fill="rgba(255,255,255,0.95)"
+      font-family="Playfair Display, Georgia, serif" font-size="${titleSize}" font-weight="600">${escXml(titleClipped)}</text>
+    <text x="${w/2}" y="${authorY}" text-anchor="middle" fill="rgba(255,255,255,0.62)"
+      font-family="DM Sans, sans-serif" font-size="${authorSize}" font-style="italic">${escXml(author)}</text>`;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
     <defs>
       <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
@@ -518,11 +533,7 @@ function GenCover({ title, author, accent, motif, w, h }) {
     <text x="${w/2}" y="${motifY}" text-anchor="middle" fill="rgba(255,255,255,0.92)"
       font-family="Playfair Display, Georgia, serif" font-size="${motifSize}" font-weight="700"
       dominant-baseline="middle">${motifChar}</text>
-    <line x1="${w*0.25}" y1="${ruleY}" x2="${w*0.75}" y2="${ruleY}" stroke="rgba(184,150,78,0.85)" stroke-width="0.8"/>
-    <text x="${w/2}" y="${titleY}" text-anchor="middle" fill="rgba(255,255,255,0.95)"
-      font-family="Playfair Display, Georgia, serif" font-size="${titleSize}" font-weight="600">${escXml(titleClipped)}</text>
-    <text x="${w/2}" y="${authorY}" text-anchor="middle" fill="rgba(255,255,255,0.62)"
-      font-family="DM Sans, sans-serif" font-size="${authorSize}" font-style="italic">${escXml(author)}</text>
+    <line x1="${w*0.30}" y1="${ruleY}" x2="${w*0.70}" y2="${ruleY}" stroke="rgba(184,150,78,0.85)" stroke-width="0.8"/>${textBlock}
   </svg>`;
   return <img src={`data:image/svg+xml,${encodeURIComponent(svg)}`} alt={title} style={{width:w,height:h,display:"block"}} />;
 }
@@ -531,11 +542,11 @@ function escXml(s) {
   return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;");
 }
 
-function CoverImg({ book, style, w, h }) {
+function CoverImg({ book, style, w, h, bare }) {
   const cover = book.cover || { accent: book.color || "#3A3A3A", motif: book.title?.[0] };
   return (
     <div style={{...style, width: w, height: h}}>
-      <GenCover title={book.title} author={book.author} accent={cover.accent} motif={cover.motif} w={w||80} h={h||110} />
+      <GenCover title={book.title} author={book.author} accent={cover.accent} motif={cover.motif} w={w||80} h={h||110} bare={bare} />
     </div>
   );
 }
@@ -921,6 +932,7 @@ export default function App() {
         .drop::first-letter{float:left;font-family:'Playfair Display',serif;font-size:3.4em;line-height:.78;padding-right:8px;padding-top:4px;color:#6B1D2A;font-weight:700}
         .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;z-index:2000;animation:fu .3s;box-shadow:0 4px 20px rgba(0,0,0,.15);max-width:90%}
         .toast-success{background:#2D5A27;color:#fff} .toast-info{background:#1A1612;color:#FAF6F0} .toast-error{background:#7A2424;color:#fff} .toast-warning{background:#8A5C24;color:#fff}
+        .home-link:hover{color:#1A1612 !important;background:#F5EFE4;border-color:#DDD5CA !important}
         .dayB{width:38px;height:38px;border-radius:50%;border:1.5px solid #DDD5CA;background:transparent;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;color:#8A7E73;transition:all .15s;display:flex;align-items:center;justify-content:center}
         .dayB.on{background:#6B1D2A;color:#FAF6F0;border-color:#6B1D2A}
         .dayB:hover{border-color:#6B1D2A}
@@ -931,15 +943,24 @@ export default function App() {
 
       {toast && <div className={`toast toast-${toast.type||"info"}`}>{toast.msg}</div>}
 
-      {/* ─── HEADER ─── */}
+      {/* ─── HEADER ───
+          Logo and explicit "← Home" link both navigate back to the landing
+          page (`/`). This gives users a visible escape from the SPA — the
+          previous design had no way back unless you edited the URL. The
+          three tabs (Library/Inbox/My Books) remain because each is a
+          distinct in-app view; the landing page's "Library" is a marketing
+          section, the SPA's "Library" is the full browseable catalog. */}
       <header style={{background:"rgba(250,246,240,.96)",backdropFilter:"blur(8px)",position:"sticky",top:0,zIndex:100,borderBottom:"1px solid #DDD5CA"}}>
-        <div style={{maxWidth:1060,margin:"0 auto",padding:"12px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{cursor:"pointer",display:"flex",alignItems:"baseline",gap:8}} onClick={()=>{nav("library");tts.stop();}}>
-            <span style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:800,color:"#1A1612"}}>The Chapter</span>
+        <div style={{maxWidth:1060,margin:"0 auto",padding:"12px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:14,minWidth:0}}>
+            <a href="/" style={{textDecoration:"none",cursor:"pointer",display:"flex",alignItems:"baseline",gap:8}} title="Back to home">
+              <span style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:800,color:"#1A1612"}}>The Chapter</span>
+            </a>
+            <a href="/" className="home-link" style={{textDecoration:"none",fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A7E73",padding:"4px 10px",borderRadius:12,border:"1px solid transparent",transition:"all .15s",whiteSpace:"nowrap"}}>← Home</a>
           </div>
           <nav style={{display:"flex",gap:4,alignItems:"center"}}>
             {[["library","Library"],["inbox","Inbox"],["mybooks","My Books"]].map(([v,l])=>(
-              <button key={v} className="b bg" style={{fontWeight:view===v?600:400,color:view===v?"#1A1612":"#8A7E73",position:"relative"}} onClick={()=>nav(v)}>
+              <button key={v} className="b bg" style={{fontWeight:view===v?600:400,color:view===v?"#1A1612":"#8A7E73",position:"relative"}} onClick={()=>{nav(v);tts.stop();}}>
                 {l}
                 {v==="inbox"&&unreadCount>0&&<span style={{background:"#6B1D2A",color:"#FAF6F0",borderRadius:8,padding:"1px 6px",fontSize:9,fontWeight:700}}>{unreadCount}</span>}
                 {v==="mybooks"&&subs.length>0&&<span style={{background:"#DDD5CA",color:"#1A1612",borderRadius:8,padding:"1px 6px",fontSize:9,fontWeight:600}}>{subs.length}</span>}
@@ -965,7 +986,7 @@ export default function App() {
               {featured.map((b,i)=>{const sub=getSub(b.id); return (
                 <div key={b.id} className="card fu" style={{minWidth:210,maxWidth:230,flex:"0 0 auto",cursor:"pointer",animationDelay:`${i*.06}s`}} onClick={()=>{setBook(b);nav("book");}}>
                   <div style={{height:130,overflow:"hidden",position:"relative"}}>
-                    <CoverImg book={b} style={{width:"100%",height:"100%"}} w={240} h={130} />
+                    <CoverImg book={b} style={{width:"100%",height:"100%"}} w={240} h={130} bare />
                     <div style={{position:"absolute",bottom:0,left:0,right:0,height:50,background:"linear-gradient(transparent,rgba(0,0,0,.5))"}} />
                     <span style={{position:"absolute",bottom:6,left:8,fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#fff9",letterSpacing:.8,textTransform:"uppercase"}}>{b.chapters} ch.</span>
                   </div>
@@ -1008,7 +1029,7 @@ export default function App() {
         <main style={{maxWidth:800,margin:"0 auto",padding:"0 20px 60px"}} className="fi">
           <button className="b bg" style={{margin:"16px 0"}} onClick={()=>nav("library")}>← Library</button>
           <div style={{height:220,borderRadius:10,overflow:"hidden",position:"relative",marginBottom:16}}>
-            <CoverImg book={book} style={{width:"100%",height:"100%"}} w={800} h={220} />
+            <CoverImg book={book} style={{width:"100%",height:"100%"}} w={800} h={220} bare />
             <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 30%,rgba(0,0,0,.7))"}} />
             <div style={{position:"absolute",bottom:18,left:18,right:18}}>
               <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:"clamp(20px,3.2vw,30px)",fontWeight:700,color:"#fff",lineHeight:1.15,marginBottom:3,textShadow:"0 2px 8px rgba(0,0,0,.4)"}}>{book.title}</h1>
