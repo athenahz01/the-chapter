@@ -106,3 +106,19 @@ Three things from the original product guide are **not implemented**. They're al
 3. **Database.** All subscriptions, inbox items, and streak state live in `localStorage` per browser. A user who subscribes on their phone gets nothing on their laptop. Moving to Supabase or Postgres is a prerequisite for #2.
 
 Everything else in the guide — email delivery, AI preludes, Wikisource fetching, the reader, TTS, the landing page — is wired up and working.
+
+## Wikisource URL patterns
+
+Wikisource regularly moves works to year-stamped page titles (e.g. `Pride_and_Prejudice` → `Pride_and_Prejudice_(1817)`). Two things make this work:
+
+1. The Wikisource fetch in `App.jsx` passes `redirects=1` so the API resolves redirects server-side.
+2. Books whose canonical Wikisource URL is a multi-volume index (Wuthering Heights, Tess of the d'Urbervilles, Emma, Don Quixote, etc.) have `wsPage: null` and fall back to the Claude API for chapter text. **This means `ANTHROPIC_API_KEY` is required for ~7 books to load.**
+
+If you add a book and its `wsPage` always returns nothing, check the actual Wikisource title with `redirects=1` enabled before assuming the path is wrong.
+
+## Outstanding items needing manual setup
+
+- [ ] **`ANTHROPIC_API_KEY` in Vercel** — required for AI preludes and for the ~7 books without a Wikisource page (Frankenstein, Wuthering Heights, Emma, Don Quixote, Monte Cristo, Tess, Meditations, Republic, Dorian Gray).
+- [ ] **`og-image.jpg`** — currently no Open Graph image is set. Drop a 1200×630 JPG into the project root and re-add `<meta property="og:image" content="/og-image.jpg">` in `index.html` for nice social-media previews.
+- [ ] **Resend domain verification** — currently using `onboarding@resend.dev`, which only delivers to the address that owns the Resend account. Verify a sending domain in Resend (Settings → Domains) and update `FROM_EMAIL` in Vercel.
+- [ ] **Footer contact email** — currently `cole@whetstoneadvisory.com`. Swap to a brand-aligned address once a domain is set up.

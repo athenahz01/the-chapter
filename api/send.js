@@ -40,7 +40,7 @@ export default async function handler(req, res) {
   if (typeof body === "string") {
     try { body = JSON.parse(body); } catch { body = {}; }
   }
-  const { to, subject, html, text } = body || {};
+  const { to, subject, html, text, unsubscribeUrl } = body || {};
 
   if (!to || !subject) {
     return res.status(400).json({ ok: false, error: "Missing required fields: to, subject" });
@@ -59,6 +59,23 @@ export default async function handler(req, res) {
     return res.status(500).json({ ok: false, error: "RESEND_API_KEY not configured" });
   }
 
+  // Build the Resend payload. List-Unsubscribe headers are required by
+  // Gmail/Yahoo's bulk-sender rules (Feb 2024). Without them mail is
+  // increasingly likely to land in spam or be rejected outright.
+  const payload = {
+    from: fromEmail,
+    to: clean,
+    subject: String(subject).slice(0, 998), // RFC 5322 subject line limit
+    html: html || "",
+    text: text || "",
+  };
+  if (unsubscribeUrl && /^https?:\/\//.test(unsubscribeUrl)) {
+    payload.headers = {
+      "List-Unsubscribe": `<${unsubscribeUrl}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    };
+  }
+
   try {
     const response = await fetch(RESEND_URL, {
       method: "POST",
@@ -66,24 +83,31 @@ export default async function handler(req, res) {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: clean,
-        subject: String(subject).slice(0, 998), // RFC 5322 subject line limit
-        html: html || "",
-        text: text || "",
-      }),
+      body: JSON.stringify(payload),
     });
 
     const data = await response.json().catch(() => ({}));
 
     if (response.ok) {
+      console.log(`Resend OK: id=${data.id}, to=${clean.join(",")}, from=${fromEmail}`);
       return res.status(200).json({ ok: true, id: data.id });
     }
-    console.error("Resend error:", response.status, data);
+
+    // Known-failure diagnostics — translate Resend's terse errors into something
+    // an operator reading Vercel logs can act on.
+    let diagnostic = "";
+    const msg = (data?.message || data?.name || "").toLowerCase();
+    if (msg.includes("you can only send testing emails to your own email") || msg.includes("verify a domain")) {
+      diagnostic = " — DIAGNOSTIC: Your Resend account doesn't have a verified domain yet. Until you verify one in resend.com → Settings → Domains, Resend will ONLY deliver to the email address registered on your Resend account. Currently trying to send to: " + clean.join(", ");
+    } else if (msg.includes("api key") || response.status === 401) {
+      diagnostic = " — DIAGNOSTIC: RESEND_API_KEY is invalid or revoked. Generate a new key at resend.com/api-keys and update the Vercel env var.";
+    } else if (msg.includes("from")) {
+      diagnostic = " — DIAGNOSTIC: FROM_EMAIL ('" + fromEmail + "') uses a domain that isn't verified in your Resend account. Either verify the domain or use 'onboarding@resend.dev' for testing.";
+    }
+    console.error(`Resend error ${response.status}:`, JSON.stringify(data) + diagnostic);
     return res.status(response.status).json({
       ok: false,
-      error: data?.message || data?.name || `Resend HTTP ${response.status}`,
+      error: (data?.message || data?.name || `Resend HTTP ${response.status}`) + diagnostic,
     });
   } catch (err) {
     console.error("Email send error:", err);
