@@ -244,6 +244,7 @@ const BOOKS = [
   // ─── LEGACY CATALOG (kept from original — popular classics not on Cole's list) ─
   { id:"pp", title:"Pride and Prejudice", author:"Jane Austen", year:1813, genre:"Romance", chapters:61,
     wsPage:(n)=>`Pride_and_Prejudice/Chapter_${n}`,
+<<<<<<< HEAD
     cover:{ accent:"#3A5A3A", motif:"P" }, group:"Other Classics", featured:true },
   { id:"je", title:"Jane Eyre", author:"Charlotte Brontë", year:1847, genre:"Gothic Romance", chapters:38,
     wsPage:(n)=>{const rom=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV","XXV","XXVI","XXVII","XXVIII","XXIX","XXX","XXXI","XXXII","XXXIII","XXXIV","XXXV","XXXVI","XXXVII","XXXVIII"];return`Jane_Eyre_(1st_edition)/Chapter_${rom[n]}`;},
@@ -253,6 +254,79 @@ const BOOKS = [
   { id:"drac", title:"Dracula", author:"Bram Stoker", year:1897, genre:"Gothic Horror", chapters:27,
     wsPage:(n)=>`Dracula/Chapter_${n}`,
     cover:{ accent:"#0D0D1A", motif:"D" }, group:"Other Classics" },
+=======
+    imgFile:"Arthur_Hughes_-_The_Long_Engagement_-_Google_Art_Project.jpg", color:"#3A5A3A", featured:true },
+  { id:"ttc", title:"A Tale of Two Cities", author:"Charles Dickens", year:1859, genre:"Historical Fiction", chapters:45,
+    // Three Books: I (6 chapters), II (24), III (15). Total 45.
+    wsPage:(n)=>{
+      const ROM=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV"];
+      let book, ch;
+      if (n <= 6) { book = "Book_the_First"; ch = n; }
+      else if (n <= 30) { book = "Book_the_Second"; ch = n - 6; }
+      else if (n <= 45) { book = "Book_the_Third"; ch = n - 30; }
+      else return null;
+      return `A_Tale_of_Two_Cities/${book}/Chapter_${ROM[ch]}`;
+    },
+    imgFile:"Eugène_Delacroix_-_Le_28_Juillet._La_Liberté_guidant_le_peuple.jpg", color:"#3E2723", featured:true },
+  { id:"ge", title:"Great Expectations", author:"Charles Dickens", year:1861, genre:"Coming of Age", chapters:59,
+    // Wikisource only has the (1890) edition under this exact path; uses Roman numerals.
+    wsPage:(n)=>{const ROM=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV","XXV","XXVI","XXVII","XXVIII","XXIX","XXX","XXXI","XXXII","XXXIII","XXXIV","XXXV","XXXVI","XXXVII","XXXVIII","XXXIX","XL","XLI","XLII","XLIII","XLIV","XLV","XLVI","XLVII","XLVIII","XLIX","L","LI","LII","LIII","LIV","LV","LVI","LVII","LVIII","LIX"]; return ROM[n]?`Great_Expectations_(1890)/Chapter_${ROM[n]}`:null;},
+    imgFile:"Atkinson_Grimshaw_-_Moonlight_on_the_Thames_at_Greenwich.jpg", color:"#1A2632", featured:true },
+  { id:"cc", title:"A Christmas Carol", author:"Charles Dickens", year:1843, genre:"Novella", chapters:5,
+    wsPage:(n)=>`A_Christmas_Carol_(Dickens,_1843)/Stave_${n}`,
+    imgFile:"Marley's_Ghost-John_Leech,_1843.jpg", color:"#1A3A2A" },
+  { id:"je", title:"Jane Eyre", author:"Charlotte Brontë", year:1847, genre:"Gothic Romance", chapters:38,
+    wsPage:(n)=>{const rom=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV","XXV","XXVI","XXVII","XXVIII","XXIX","XXX","XXXI","XXXII","XXXIII","XXXIV","XXXV","XXXVI","XXXVII","XXXVIII"];return`Jane_Eyre_(1st_edition)/Chapter_${rom[n]}`;},
+    imgFile:"Caspar_David_Friedrich_-_Wanderer_above_the_sea_of_fog.jpg", color:"#2A3A4A", featured:true },
+  { id:"wh", title:"Wuthering Heights", author:"Emily Brontë", year:1847, genre:"Gothic Fiction", chapters:34,
+    // Wikisource doesn't expose Wuthering Heights at a clean per-chapter path
+    // (it only links to volume index pages). Falls back to Claude API.
+    wsPage:null,
+    imgFile:"Caspar_David_Friedrich_-_Two_Men_Contemplating_the_Moon.jpg", color:"#1A1A2A" },
+  { id:"frank", title:"Frankenstein", author:"Mary Shelley", year:1818, genre:"Gothic Horror", chapters:24,
+    wsPage:null,
+    imgFile:"Caspar_David_Friedrich_-_The_Sea_of_Ice_-_WGA09138.jpg", color:"#1A2A3A", featured:true },
+  { id:"drac", title:"Dracula", author:"Bram Stoker", year:1897, genre:"Gothic Horror", chapters:27,
+    wsPage:(n)=>`Dracula/Chapter_${n}`,
+    imgFile:"Caspar_David_Friedrich_-_Abtei_im_Eichwald_-_Google_Art_Project.jpg", color:"#0D0D1A" },
+  { id:"ss", title:"Sense and Sensibility", author:"Jane Austen", year:1811, genre:"Romance", chapters:50,
+    wsPage:(n)=>`Sense_and_Sensibility/Chapter_${n}`,
+    imgFile:"Thomas_Gainsborough_-_The_Morning_Walk.jpg", color:"#4A5A3A" },
+  { id:"emma", title:"Emma", author:"Jane Austen", year:1815, genre:"Comedy of Manners", chapters:55,
+    wsPage:null,
+    imgFile:"Charles_Edward_Perugini_-_Girl_Reading.jpg", color:"#5A4A3A" },
+  { id:"ti", title:"Treasure Island", author:"R. L. Stevenson", year:1883, genre:"Adventure", chapters:34,
+    wsPage:(n)=>`Treasure_Island/Chapter_${n}`,
+    imgFile:"N.C._Wyeth_-_Treasure_Island,_1911_-_p047.jpg", color:"#1E3A4A" },
+  { id:"tess", title:"Tess of the d'Urbervilles", author:"Thomas Hardy", year:1891, genre:"Tragedy", chapters:59,
+    // Wikisource organizes Tess into Volumes 1–3 with nested phases; no clean
+    // per-chapter path. Falls back to Claude API.
+    wsPage:null,
+    imgFile:"George_Clausen_-_Summer_Afternoon.jpg", color:"#5A4A2A" },
+  { id:"dq", title:"Don Quixote", author:"Miguel de Cervantes", year:1605, genre:"Satire", chapters:52,
+    wsPage:null,
+    imgFile:"Honoré_Daumier_-_Don_Quixote_and_Sancho_Panza_-_WGA5961.jpg", color:"#5A3A1A" },
+  { id:"mc", title:"The Count of Monte Cristo", author:"Alexandre Dumas", year:1844, genre:"Adventure", chapters:40,
+    wsPage:null,
+    imgFile:"The_Château_d'If.jpg", color:"#1A3A4A" },
+  { id:"odyss", title:"The Odyssey", author:"Homer (Butler transl.)", year:-800, genre:"Epic Poetry", chapters:24,
+    wsPage:(n)=>`The_Odyssey_(Butler)/Book_${["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV"][n]}`,
+    imgFile:"Waterhouse-Ulysses_and_the_Sirens.jpg", color:"#1A4A5A" },
+  { id:"war", title:"The Art of War", author:"Sun Tzu (Giles transl.)", year:-500, genre:"Philosophy", chapters:13,
+    // Wikisource uses the chapter NAMES as page slugs, not numbers.
+    wsPage:(n)=>{const NAMES=["","Laying_Plans","Waging_War","Attack_by_Stratagem","Tactical_Dispositions","Energy","Weak_Points_and_Strong","Maneuvering","Variation_in_Tactics","The_Army_on_the_March","Terrain","The_Nine_Situations","The_Attack_by_Fire","The_Use_of_Spies"]; return NAMES[n]?`The_Art_of_War_(Giles)/${NAMES[n]}`:null;},
+    imgFile:"Erta_Rivale%2C_Italian._The_Fall_of_Jericho%2C_ca._1920.jpg", color:"#4A1A1A" },
+  { id:"med", title:"Meditations", author:"Marcus Aurelius", year:180, genre:"Philosophy", chapters:12,
+    wsPage:null,
+    imgFile:"Bronze_equestrian_statue_of_Marcus_Aurelius.jpg", color:"#3A3A5A" },
+  { id:"rep", title:"The Republic", author:"Plato (Jowett transl.)", year:-375, genre:"Philosophy", chapters:10,
+    wsPage:null,
+    imgFile:"Sanzio_01.jpg", color:"#2A3A1A" },
+  { id:"prince", title:"The Prince", author:"Niccolò Machiavelli", year:1532, genre:"Political Philosophy", chapters:26,
+    // Wikisource uses the (Hill_Thomson) translation, with Roman numeral chapters.
+    wsPage:(n)=>{const ROM=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV","XXV","XXVI"]; return ROM[n]?`The_Prince_(Hill_Thomson)/Chapter_${ROM[n]}`:null;},
+    imgFile:"Santi_di_Tito_-_Niccolo_Machiavelli's_portrait_headcrop.jpg", color:"#2A1A1A" },
+>>>>>>> f0d645c9155ac34d5738bc3fe353503dbaf8d5d3
   { id:"alice", title:"Alice in Wonderland", author:"Lewis Carroll", year:1865, genre:"Fantasy", chapters:12,
     wsPage:(n)=>`Alice's_Adventures_in_Wonderland_(1866)/Chapter_${n}`,
     cover:{ accent:"#4A5A6A", motif:"A" }, group:"Other Classics" },
@@ -532,11 +606,29 @@ function escXml(s) {
 }
 
 function CoverImg({ book, style, w, h }) {
+<<<<<<< HEAD
   const cover = book.cover || { accent: book.color || "#3A3A3A", motif: book.title?.[0] };
   return (
     <div style={{...style, width: w, height: h}}>
       <GenCover title={book.title} author={book.author} accent={cover.accent} motif={cover.motif} w={w||80} h={h||110} />
     </div>
+=======
+  const [err, setErr] = useState(false);
+  // The Wikimedia Special:FilePath endpoint is unreliable from the browser
+  // (intermittent CDN errors, anti-hotlink behavior). Hide the broken-image
+  // icon and the alt-text by giving the img a tinted background — the SVG
+  // fallback rendered on `err` is the same color, so the swap is invisible.
+  if (!book.imgFile || err) return <GenCover title={book.title} author={book.author} color={book.color} w={w||80} h={h||110} />;
+  const fallbackBg = book.color || "#3A3A3A";
+  return (
+    <img
+      src={imgUrl(book.imgFile, w > 200 ? 800 : 400)}
+      alt={book.title}
+      style={{...style, objectFit:"cover", background: fallbackBg, color: "transparent"}}
+      onError={()=>setErr(true)}
+      loading="lazy"
+    />
+>>>>>>> f0d645c9155ac34d5738bc3fe353503dbaf8d5d3
   );
 }
 
