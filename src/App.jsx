@@ -27,9 +27,9 @@ if (!window.storage) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   THE CHAPTER v7 — Classic literature delivered to your inbox
+   THE CHAPTER v8 — Classic literature delivered to your inbox
    
-   Text: Anthropic Claude API + Wikisource API fallback
+   Text: Wikisource → Project Gutenberg (/api/gutenberg) → Claude fallback
    Images: Wikimedia Commons thumb.php
    AI: Claude API for chapter preludes
    Email: Resend API (configured once by admin below)
@@ -125,8 +125,9 @@ const BOOKS = [
     cover:{ accent:"#2A2A3A", motif:"J" }, group:"Alexandre Dumas" },
   { id:"corsican", title:"The Corsican Brothers", author:"Alexandre Dumas", year:1844, genre:"Drama", chapters:11, wsPage:null,
     cover:{ accent:"#3A3A2A", motif:"C" }, group:"Alexandre Dumas" },
-  { id:"saintehermine", title:"The Knight of Sainte-Hermine", author:"Alexandre Dumas", year:1869, genre:"Historical Fiction", chapters:118, wsPage:null,
-    cover:{ accent:"#2A3A1A", motif:"K" }, group:"Alexandre Dumas" },
+  // NOTE: "The Knight of Sainte-Hermine" removed — the French original is
+  // public domain but the only English translation dates from 2008 and is
+  // still under copyright. We cannot serve it.
 
   // ─── FYODOR DOSTOEVSKY (8) ───────────────────────────────────
   { id:"crime", title:"Crime and Punishment", author:"Fyodor Dostoevsky", year:1866, genre:"Psychological Fiction", chapters:41, wsPage:null,
@@ -134,6 +135,7 @@ const BOOKS = [
   { id:"idiot", title:"The Idiot", author:"Fyodor Dostoevsky", year:1869, genre:"Philosophical Fiction", chapters:46, wsPage:null,
     cover:{ accent:"#2A1A2A", motif:"I" }, group:"Fyodor Dostoevsky" },
   { id:"demons", title:"Demons", author:"Fyodor Dostoevsky", year:1872, genre:"Political Fiction", chapters:43, wsPage:null,
+    gq:"The Possessed Dostoyevsky", // Garnett's PD translation title on Gutenberg
     cover:{ accent:"#1A1A1A", motif:"D" }, group:"Fyodor Dostoevsky" },
   { id:"karamazov", title:"The Brothers Karamazov", author:"Fyodor Dostoevsky", year:1880, genre:"Philosophical Fiction", chapters:96, wsPage:null,
     cover:{ accent:"#2A2A3A", motif:"K" }, group:"Fyodor Dostoevsky", featured:true },
@@ -142,6 +144,7 @@ const BOOKS = [
   { id:"gambler", title:"The Gambler", author:"Fyodor Dostoevsky", year:1867, genre:"Novella", chapters:17, wsPage:null,
     cover:{ accent:"#3A2A1A", motif:"G" }, group:"Fyodor Dostoevsky" },
   { id:"adolescent", title:"The Adolescent", author:"Fyodor Dostoevsky", year:1875, genre:"Bildungsroman", chapters:50, wsPage:null,
+    gq:"A Raw Youth Dostoyevsky", // the public-domain (Garnett) translation title
     cover:{ accent:"#1A2A2A", motif:"A" }, group:"Fyodor Dostoevsky" },
   { id:"poorfolk", title:"Poor Folk", author:"Fyodor Dostoevsky", year:1846, genre:"Epistolary", chapters:1, wsPage:null,
     cover:{ accent:"#2A3A3A", motif:"P" }, group:"Fyodor Dostoevsky" },
@@ -160,6 +163,7 @@ const BOOKS = [
   { id:"miserables", title:"Les Misérables", author:"Victor Hugo", year:1862, genre:"Historical Fiction", chapters:365, wsPage:null,
     cover:{ accent:"#1A2A3A", motif:"M" }, group:"Victor Hugo", featured:true },
   { id:"hunchback", title:"The Hunchback of Notre-Dame", author:"Victor Hugo", year:1831, genre:"Gothic Fiction", chapters:59, wsPage:null,
+    gq:"Notre-Dame de Paris Hugo", // Gutenberg's title for the Hapgood translation
     cover:{ accent:"#2A1A2A", motif:"H" }, group:"Victor Hugo" },
   { id:"toilers", title:"Toilers of the Sea", author:"Victor Hugo", year:1866, genre:"Adventure", chapters:64, wsPage:null,
     cover:{ accent:"#1A3A4A", motif:"T" }, group:"Victor Hugo" },
@@ -210,7 +214,7 @@ const BOOKS = [
   { id:"baskervilles", title:"The Hound of the Baskervilles", author:"Arthur Conan Doyle", year:1902, genre:"Mystery", chapters:15, wsPage:null,
     cover:{ accent:"#1A2A1A", motif:"H" }, group:"Arthur Conan Doyle", featured:true },
   { id:"sher", title:"The Adventures of Sherlock Holmes", author:"Arthur Conan Doyle", year:1892, genre:"Mystery", chapters:12,
-    wsPage:(n)=>{const t=["","A_Scandal_in_Bohemia","The_Red-Headed_League","A_Case_of_Identity","The_Boscombe_Valley_Mystery","The_Five_Orange_Pips","The_Man_with_the_Twisted_Lip","The_Adventure_of_the_Blue_Carbuncle","The_Adventure_of_the_Speckled_Band","The_Adventure_of_the_Engineer%27s_Thumb","The_Adventure_of_the_Noble_Bachelor","The_Adventure_of_the_Beryl_Coronet","The_Adventure_of_the_Copper_Beeches"];return t[n]?`The_Adventures_of_Sherlock_Holmes/${t[n]}`:null;},
+    wsPage:(n)=>{const t=["","A_Scandal_in_Bohemia","The_Red-Headed_League","A_Case_of_Identity","The_Boscombe_Valley_Mystery","The_Five_Orange_Pips","The_Man_with_the_Twisted_Lip","The_Adventure_of_the_Blue_Carbuncle","The_Adventure_of_the_Speckled_Band","The_Adventure_of_the_Engineer's_Thumb","The_Adventure_of_the_Noble_Bachelor","The_Adventure_of_the_Beryl_Coronet","The_Adventure_of_the_Copper_Beeches"];return t[n]?`The_Adventures_of_Sherlock_Holmes/${t[n]}`:null;},
     cover:{ accent:"#3A2A1A", motif:"S" }, group:"Arthur Conan Doyle", featured:true },
   { id:"memoirssh", title:"The Memoirs of Sherlock Holmes", author:"Arthur Conan Doyle", year:1894, genre:"Mystery", chapters:12, wsPage:null,
     cover:{ accent:"#2A2A1A", motif:"M" }, group:"Arthur Conan Doyle" },
@@ -304,6 +308,39 @@ async function fetchChapterWS(page) {
   } catch { return null; }
 }
 
+// ─── PROJECT GUTENBERG FETCHER (server-side, /api/gutenberg) ───
+// Primary text source for books without a per-chapter Wikisource page.
+// The serverless function resolves title+author → Gutenberg ID via Gutendex,
+// downloads the real ebook text, splits it into chapters, and returns the one
+// we asked for. We cache the resolved ID per book so subsequent chapters skip
+// the resolution step entirely.
+const gidCache = {}; // bookId → gutenberg id (also persisted to storage)
+
+async function fetchChapterGutenberg(b, num) {
+  try {
+    // Reuse a previously-resolved Gutenberg ID if we have one.
+    let gid = gidCache[b.id];
+    if (!gid) {
+      try { const r = await window.storage.get(`ch7-gid-${b.id}`); if (r?.value) gid = gidCache[b.id] = r.value; } catch {}
+    }
+    const q = b.gq || `${b.title} ${b.author}`;
+    const params = new URLSearchParams({ q, ch: String(num) });
+    if (gid) params.set("gid", String(gid));
+
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 30000); // cold fetch of a big book can take a while
+    const r = await fetch(`/api/gutenberg?${params}`, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!r.ok) return null;
+    const d = await r.json();
+    if (d?.gid && !gidCache[b.id]) {
+      gidCache[b.id] = d.gid;
+      try { await window.storage.set(`ch7-gid-${b.id}`, String(d.gid)); } catch {}
+    }
+    return d?.ok && typeof d.text === "string" && d.text.length > 200 ? d.text : null;
+  } catch { return null; }
+}
+
 // ─── CLAUDE PROXY (server-side, /api/claude) ───────────────────
 // The browser can't call api.anthropic.com directly (CORS + the API key must
 // stay server-side). All Claude requests go through our Vercel function.
@@ -378,7 +415,11 @@ function buildEmailHTML(book, chapters) {
     const paras = ch.text.split(/\n\n+/).filter(p => p.trim()).map((p,i) =>
       `<p style="font-family:Georgia,serif;font-size:16px;line-height:1.85;color:#2C2419;margin:0 0 1.1em;${i>0?"text-indent:1.5em":""}">${esc(p.trim())}</p>`
     ).join("\n");
-    return `<h2 style="font-family:Georgia,serif;font-size:19px;color:#6B1D2A;margin:28px 0 8px">Chapter ${esc(ch.chNum)} <span style="font-size:13px;color:#8A7E73;font-weight:400">of ${esc(book.chapters)}</span></h2>${pre}${paras}`;
+    // Honesty note when the text came from the AI fallback rather than an
+    // authoritative source — we must not pass off reconstructed text as the
+    // original without saying so.
+    const aiNote = ch.src === "AI reconstruction" ? `<p style="font-size:11px;color:#8A5C24;background:#FBF3E4;border-radius:4px;padding:8px 12px;margin:0 0 14px;font-family:Helvetica,sans-serif">⚠ We couldn't retrieve this chapter from our text archives, so this version was reconstructed by AI and may differ from the original. We're working on sourcing the authentic text.</p>` : "";
+    return `<h2 style="font-family:Georgia,serif;font-size:19px;color:#6B1D2A;margin:28px 0 8px">Chapter ${esc(ch.chNum)} <span style="font-size:13px;color:#8A7E73;font-weight:400">of ${esc(book.chapters)}</span></h2>${aiNote}${pre}${paras}`;
   }).join('<hr style="border:none;border-top:1px solid #DDD5CA;margin:36px 0">');
 
   // Origin used in the unsubscribe link. Falls back to the live site so the
@@ -585,6 +626,7 @@ export default function App() {
   // implementation wrote on every keystroke and Cancel was a no-op.
   const [settingsDraft, setSettingsDraft] = useState(null);
   const [userPlan, setUserPlan] = useState("free"); // "free" | "monthly" | "annual"
+  const [unsubMode, setUnsubMode] = useState(false); // arrived via email #unsubscribe link
   const tts = useTTS();
   const subsRef = useRef(subs);
   const inboxRef = useRef(inbox);
@@ -610,6 +652,15 @@ export default function App() {
 
   // ─── URL params (from landing page CTA) ───
   useEffect(() => {
+    // #unsubscribe arrives from the List-Unsubscribe link in every email.
+    // Subscriptions live in this browser's storage, so the best we can do
+    // client-side is route to My Books and offer a one-click pause-all.
+    if (window.location.hash === "#unsubscribe") {
+      setView("mybooks");
+      setUnsubMode(true);
+      window.history.replaceState({}, "", window.location.pathname);
+      return;
+    }
     const params = new URLSearchParams(window.location.search);
     const email = params.get("email");
     const bookId = params.get("book");
@@ -632,7 +683,11 @@ export default function App() {
   const saveStreak = async (s) => { setStreak(s); try { await window.storage.set("ch7-streak", JSON.stringify(s)); } catch {} };
   const savePrefs = async (t,f,s) => { setTheme(t); setFontFam(f); setFontSize(s); try { await window.storage.set("ch7-prefs", JSON.stringify({t,f,s})); } catch {} };
   const svEmail = async (e) => { setUserEmail(e); try { await window.storage.set("ch7-email", e); } catch {} };
-  const svPlan = async (p) => { setUserPlan(p); try { await window.storage.set("ch7-plan", p); } catch {} };
+  // planRef is updated synchronously here (not just via the useEffect sync)
+  // because deliverChapters reads planRef.current — a user who picks a paid
+  // plan and subscribes in the same click would otherwise be gated at the
+  // free-trial cap for their very first delivery.
+  const svPlan = async (p) => { setUserPlan(p); planRef.current = p; try { await window.storage.set("ch7-plan", p); } catch {} };
   const isPremium = userPlan === "monthly" || userPlan === "annual";
 
   const cacheText = async (k,t) => { setChCache(c=>({...c,[k]:t})); try { await window.storage.set(`ch7-t-${k}`,t); } catch {} };
@@ -658,13 +713,19 @@ export default function App() {
   const unreadCount = inbox.filter(x=>!x.read).length;
 
   // ─── Fetch helpers ───
+  // Source order matters: Wikisource (curated, per-chapter) → Project
+  // Gutenberg (real text, whole catalog) → Claude reconstruction (last
+  // resort, and flagged as such — a model cannot faithfully reproduce a
+  // novel's text, so anything from this path is labeled for the reader).
   const fetchText = async (b,num) => {
     const k=`${b.id}-${num}`; let t = await getT(k);
-    if(t) return t;
-    if(b.wsPage){ const ws=b.wsPage(num); if(ws) t = await fetchChapterWS(ws); }
-    if(!t) t = await fetchChapterViaAPI(b.title,b.author,num,`Chapter ${num}`);
+    if(t) return { text:t, src:"cached" };
+    let src = null;
+    if(b.wsPage){ const ws=b.wsPage(num); if(ws){ t = await fetchChapterWS(ws); if(t) src="Wikisource"; } }
+    if(!t){ t = await fetchChapterGutenberg(b,num); if(t) src="Project Gutenberg"; }
+    if(!t){ t = await fetchChapterViaAPI(b.title,b.author,num,`Chapter ${num}`); if(t) src="AI reconstruction"; }
     if(t) await cacheText(k,t);
-    return t;
+    return t ? { text:t, src } : null;
   };
   const fetchPre = async (b,num,text) => {
     const k=`${b.id}-${num}`; let p = await getP(k);
@@ -678,7 +739,12 @@ export default function App() {
   const deliverChapters = async (sub, startCh, count, opts={}) => {
     const b = BOOKS.find(x=>x.id===sub.bookId);
     if(!b) return { items: [], emailStatus: "no-book" };
-    const unlocked = isPremium || sub.plan==="alacarte" || sub.plan==="paid";
+    // Read the plan from planRef, not from `isPremium` directly: this
+    // function is captured in the checkDeliveries useCallback (empty deps),
+    // so a direct read would be frozen at first render — premium users'
+    // scheduled deliveries were silently capped at the free-trial limit.
+    const curPlan = planRef.current;
+    const unlocked = curPlan==="monthly" || curPlan==="annual" || sub.plan==="alacarte" || sub.plan==="paid";
     const maxCh = unlocked ? b.chapters : FREE_CHAPTERS;
 
     const chNums = [];
@@ -689,14 +755,14 @@ export default function App() {
     }
     if(chNums.length===0) return { items: [], emailStatus: "no-chapters" };
 
-    const texts = await Promise.all(chNums.map(ch => fetchText(b, ch)));
-    const chapters = chNums.map((ch,i) => ({ chNum:ch, text:texts[i], prelude:null })).filter(c => c.text);
+    const results = await Promise.all(chNums.map(ch => fetchText(b, ch)));
+    const chapters = chNums.map((ch,i) => ({ chNum:ch, text:results[i]?.text, src:results[i]?.src, prelude:null })).filter(c => c.text);
     if(chapters.length===0) return { items: [], emailStatus: "fetch-failed" };
 
     // Inbox items immediately so the user can read in-app even if email fails
     const items = chapters.map(ch => ({
       id: `${sub.bookId}-${ch.chNum}-${Date.now()}`,
-      bookId: sub.bookId, ch: ch.chNum, text: ch.text, prelude: null,
+      bookId: sub.bookId, ch: ch.chNum, text: ch.text, src: ch.src, prelude: null,
       at: new Date().toISOString(), read: false,
     }));
 
@@ -832,9 +898,13 @@ export default function App() {
     // Try Wikisource
     setLoading(true);
     if(b.wsPage){ const ws=b.wsPage(num); if(ws){ const t = await fetchChapterWS(ws); if(t){ setChText(t); setLoading(false); setTextSrc("Wikisource"); cacheText(k,t); loadPrelude(t); return; } } }
-    // Fall back to Claude API
+    // Try Project Gutenberg — the real text, covers essentially the whole catalog
+    const g = await fetchChapterGutenberg(b,num);
+    if(g){ setChText(g); setLoading(false); setTextSrc("Project Gutenberg"); cacheText(k,g); loadPrelude(g); return; }
+    // Last resort: Claude reconstruction — labeled honestly, since a model
+    // cannot faithfully reproduce the original text.
     const t = await fetchChapterViaAPI(b.title,b.author,num,`Chapter ${num}`);
-    if(t){ setChText(t); setTextSrc("AI text"); cacheText(k,t); loadPrelude(t); } else setChText("Could not load chapter.");
+    if(t){ setChText(t); setTextSrc("AI reconstruction — not the original text"); cacheText(k,t); loadPrelude(t); } else setChText("Could not load chapter.");
     setLoading(false);
   };
 
@@ -1160,6 +1230,11 @@ export default function App() {
               </div>
               {/* TTS */}
               <div style={{padding:"16px 20px 0"}}><TTSPlayer text={inboxItem.text} /></div>
+              {inboxItem.src==="AI reconstruction"&&(
+                <div style={{margin:"16px 20px 0",background:"#FBF3E4",borderRadius:6,padding:"10px 14px"}}>
+                  <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A5C24"}}>⚠ This chapter was reconstructed by AI and may differ from the original text.</p>
+                </div>
+              )}
               {inboxItem.prelude&&(
                 <div style={{margin:"20px 20px 0",background:"#FBF5EC",borderLeft:"3px solid #B8964E",borderRadius:"0 6px 6px 0",padding:"12px 16px"}}>
                   <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#B8964E",letterSpacing:1.5,textTransform:"uppercase",marginBottom:6}}>Chapter Prelude</p>
@@ -1231,6 +1306,20 @@ export default function App() {
       {view==="mybooks"&&(
         <main style={{maxWidth:1060,margin:"0 auto",padding:"24px 20px 60px"}} className="fi">
           <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:26,fontWeight:700,marginBottom:16}}>My Books</h1>
+          {unsubMode&&(
+            <div style={{background:"#FBF3E4",border:"1px solid #E0C89A",borderRadius:8,padding:"14px 18px",marginBottom:16}}>
+              <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:600,marginBottom:4}}>Manage your email deliveries</p>
+              <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73",marginBottom:10}}>
+                {subs.length>0
+                  ? "Pause or remove individual books below, or stop all email deliveries at once."
+                  : "No subscriptions found in this browser. Subscriptions are stored on the device where you signed up — open this link there to manage them, or reply to any chapter email and we'll remove you manually."}
+              </p>
+              {subs.length>0&&<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                <button className="b bp" style={{fontSize:12}} onClick={()=>{saveSubs(subs.map(s=>({...s,paused:true})));setUnsubMode(false);showToast("All deliveries paused. Resume any book below whenever you like.","success");}}>⏸ Pause all deliveries</button>
+                <button className="b bg" style={{fontSize:12}} onClick={()=>setUnsubMode(false)}>Dismiss</button>
+              </div>}
+            </div>
+          )}
           {subs.length===0?(
             <div style={{textAlign:"center",padding:"40px 20px"}}>
               <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73",marginBottom:16}}>No subscriptions yet.</p>

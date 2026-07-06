@@ -2,7 +2,7 @@
 
 Classic literature delivered to your inbox, chapter by chapter.
 
-Vite + React app on Vercel, with two serverless proxy functions.
+Vite + React app on Vercel, with three serverless functions.
 
 ## Project Structure
 
@@ -12,15 +12,27 @@ app.html            React app entry (served at /app)
 src/App.jsx         Main React component — all app logic, book catalog, UI
 src/main.jsx        React bootstrap
 api/send.js         Serverless proxy → Resend (email delivery)
-api/claude.js       Serverless proxy → Anthropic Claude API (preludes + fallback text)
+api/gutenberg.js    Serverless fetcher → Project Gutenberg (primary chapter text)
+api/claude.js       Serverless proxy → Anthropic Claude API (preludes + last-resort text)
 vite.config.js      Vite multi-page build config
 vercel.json         Vercel routing + function timeout config
 .env.example        Documents all required environment variables
 ```
 
-## Why two serverless functions?
+## Why three serverless functions?
 
-Both Resend and Anthropic block direct browser calls — Resend via CORS, Anthropic both via CORS and because the `x-api-key` header must stay server-side. The two `/api/*` functions forward requests to those services with the key attached at request time.
+Both Resend and Anthropic block direct browser calls — Resend via CORS, Anthropic both via CORS and because the `x-api-key` header must stay server-side. Those two `/api/*` functions forward requests with the key attached at request time.
+
+`api/gutenberg.js` exists for a different reason: it's the **primary text source** for the ~60 books without a per-chapter Wikisource page. It resolves title+author → a Project Gutenberg ID via the Gutendex catalog API, downloads the real ebook text, strips the license boilerplate, splits it into chapters, and returns the requested one. Responses are CDN-cached for a week (public-domain text doesn't change), so repeat reads never re-hit Gutenberg. It requires **no API key**.
+
+## Chapter text: source order
+
+Every chapter fetch tries, in order:
+
+1. **Local cache** (localStorage) — instant.
+2. **Wikisource** — for books with a curated `wsPage` mapping.
+3. **Project Gutenberg** (`/api/gutenberg`) — real text, covers essentially the whole catalog.
+4. **Claude reconstruction** (`/api/claude`, mode `chapter`) — last resort only. A language model *cannot* faithfully reproduce a novel's text, so anything served from this path is visibly labeled "AI reconstruction" in the reader, the in-app email view, and the delivered email itself. Before the Gutenberg layer existed this fallback was serving invented text for most of the catalog — that is fixed.
 
 ## Deployment
 
@@ -78,7 +90,7 @@ vercel dev
 
 ## Book catalog
 
-All 22 books are hardcoded in the `BOOKS` array at the top of `src/App.jsx`. Each entry:
+All ~80 books are hardcoded in the `BOOKS` array at the top of `src/App.jsx`. Each entry:
 
 ```js
 {
@@ -95,7 +107,9 @@ All 22 books are hardcoded in the `BOOKS` array at the top of `src/App.jsx`. Eac
 }
 ```
 
-If the book is on Wikisource, set `wsPage` to a function returning the page path. If not, set `wsPage: null` and the app will use the Claude API to reproduce the public-domain text.
+If the book is on Wikisource, set `wsPage` to a function returning the page path. If not, set `wsPage: null` and the app fetches the real text from Project Gutenberg via `/api/gutenberg`. If Gutenberg's title for the work differs from yours (translations, alternate titles), add a `gq` field with the search query to use — e.g. Demons carries `gq: "The Possessed Dostoyevsky"`.
+
+**Copyright note:** everything in the catalog must have a public-domain *English text* — a public-domain original is not enough if the only translations are modern. This is why *The Knight of Sainte-Hermine* was removed (its English translation dates from 2008).
 
 ## Known limitations (not yet built)
 
@@ -112,13 +126,13 @@ Everything else in the guide — email delivery, AI preludes, Wikisource fetchin
 Wikisource regularly moves works to year-stamped page titles (e.g. `Pride_and_Prejudice` → `Pride_and_Prejudice_(1817)`). Two things make this work:
 
 1. The Wikisource fetch in `App.jsx` passes `redirects=1` so the API resolves redirects server-side.
-2. Books whose canonical Wikisource URL is a multi-volume index (Wuthering Heights, Tess of the d'Urbervilles, Emma, Don Quixote, etc.) have `wsPage: null` and fall back to the Claude API for chapter text. **This means `ANTHROPIC_API_KEY` is required for ~7 books to load.**
+2. Books whose canonical Wikisource URL is a multi-volume index have `wsPage: null` and fetch from Project Gutenberg instead. `ANTHROPIC_API_KEY` is now only needed for AI preludes and the rare chapter that both Wikisource and Gutenberg fail to serve.
 
 If you add a book and its `wsPage` always returns nothing, check the actual Wikisource title with `redirects=1` enabled before assuming the path is wrong.
 
 ## Outstanding items needing manual setup
 
-- [ ] **`ANTHROPIC_API_KEY` in Vercel** — required for AI preludes and for the ~7 books without a Wikisource page (Frankenstein, Wuthering Heights, Emma, Don Quixote, Monte Cristo, Tess, Meditations, Republic, Dorian Gray).
+- [ ] **`ANTHROPIC_API_KEY` in Vercel** — required for AI preludes; also the last-resort text fallback (rarely hit now that Gutenberg is the primary source).
 - [ ] **`og-image.jpg`** — currently no Open Graph image is set. Drop a 1200×630 JPG into the project root and re-add `<meta property="og:image" content="/og-image.jpg">` in `index.html` for nice social-media previews.
 - [ ] **Resend domain verification** — currently using `onboarding@resend.dev`, which only delivers to the address that owns the Resend account. Verify a sending domain in Resend (Settings → Domains) and update `FROM_EMAIL` in Vercel.
 - [ ] **Footer contact email** — currently `cole@whetstoneadvisory.com`. Swap to a brand-aligned address once a domain is set up.
