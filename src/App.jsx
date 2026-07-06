@@ -52,9 +52,9 @@ const PRICE_ALACARTE = 3; // $/book one-time
 // ANTHROPIC_API_KEY env var on the server). All books work either way.
 const BOOKS = [
   // ─── CHARLES DICKENS (15) ────────────────────────────────────
-  { id:"pickwick", title:"The Pickwick Papers", author:"Charles Dickens", year:1837, genre:"Comic Fiction", chapters:57, wsPage:null, gid:580,
+  { id:"pickwick", gid:580, title:"The Pickwick Papers", author:"Charles Dickens", year:1837, genre:"Comic Fiction", chapters:57, wsPage:null,
     cover:{ accent:"#5A4A2A", motif:"P" }, group:"Charles Dickens" },
-  { id:"oliver", title:"Oliver Twist", author:"Charles Dickens", year:1838, genre:"Social Novel", chapters:53,
+  { id:"oliver", gid:47530, title:"Oliver Twist", author:"Charles Dickens", year:1838, genre:"Social Novel", chapters:53,
     // Three volumes: I (Ch I-XXII), II (XXIII-XXXVII), III (XXXVIII-LIII).
     wsPage:(n)=>{
       const ROM=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV","XXV","XXVI","XXVII","XXVIII","XXIX","XXX","XXXI","XXXII","XXXIII","XXXIV","XXXV","XXXVI","XXXVII","XXXVIII","XXXIX","XL","XLI","XLII","XLIII","XLIV","XLV","XLVI","XLVII","XLVIII","XLIX","L","LI","LII","LIII"];
@@ -66,25 +66,25 @@ const BOOKS = [
       return `Oliver_Twist_(1838)/Volume_${vol}/Chapter_${ROM[n]}`;
     },
     cover:{ accent:"#3A2A1A", motif:"O" }, group:"Charles Dickens", featured:true },
-  { id:"nickleby", title:"Nicholas Nickleby", author:"Charles Dickens", year:1839, genre:"Picaresque", chapters:65, wsPage:null, gid:967,
+  { id:"nickleby", gid:967, title:"Nicholas Nickleby", author:"Charles Dickens", year:1839, genre:"Picaresque", chapters:65, wsPage:null,
     cover:{ accent:"#4A3A2A", motif:"N" }, group:"Charles Dickens" },
-  { id:"oldcuriosity", title:"The Old Curiosity Shop", author:"Charles Dickens", year:1841, genre:"Sentimental Fiction", chapters:73, wsPage:null, gid:9702,
+  { id:"oldcuriosity", gid:9702, title:"The Old Curiosity Shop", author:"Charles Dickens", year:1841, genre:"Sentimental Fiction", chapters:73, wsPage:null,
     cover:{ accent:"#3A2A3A", motif:"C" }, group:"Charles Dickens" },
-  { id:"barnaby", title:"Barnaby Rudge", author:"Charles Dickens", year:1841, genre:"Historical Fiction", chapters:82, wsPage:null, gid:9732,
+  { id:"barnaby", gid:9732, title:"Barnaby Rudge", author:"Charles Dickens", year:1841, genre:"Historical Fiction", chapters:82, wsPage:null,
     cover:{ accent:"#4A2A2A", motif:"B" }, group:"Charles Dickens" },
-  { id:"chuzzlewit", title:"Martin Chuzzlewit", author:"Charles Dickens", year:1844, genre:"Picaresque", chapters:54, wsPage:null, gid:9699,
+  { id:"chuzzlewit", gid:9699, title:"Martin Chuzzlewit", author:"Charles Dickens", year:1844, genre:"Picaresque", chapters:54, wsPage:null,
     cover:{ accent:"#5A3A2A", motif:"M" }, group:"Charles Dickens" },
-  { id:"dombey", title:"Dombey and Son", author:"Charles Dickens", year:1848, genre:"Family Saga", chapters:62, wsPage:null, gid:9703,
+  { id:"dombey", gid:9703, title:"Dombey and Son", author:"Charles Dickens", year:1848, genre:"Family Saga", chapters:62, wsPage:null,
     cover:{ accent:"#3A3A4A", motif:"D" }, group:"Charles Dickens" },
-  { id:"copperfield", title:"David Copperfield", author:"Charles Dickens", year:1850, genre:"Bildungsroman", chapters:64, wsPage:null, gid:766,
+  { id:"copperfield", gid:766, title:"David Copperfield", author:"Charles Dickens", year:1850, genre:"Bildungsroman", chapters:64, wsPage:null,
     cover:{ accent:"#2A3A4A", motif:"D" }, group:"Charles Dickens", featured:true },
-  { id:"bleakhouse", title:"Bleak House", author:"Charles Dickens", year:1853, genre:"Mystery", chapters:67, wsPage:null, gid:1023,
+  { id:"bleakhouse", gid:1023, title:"Bleak House", author:"Charles Dickens", year:1853, genre:"Mystery", chapters:67, wsPage:null,
     cover:{ accent:"#1A1A2A", motif:"B" }, group:"Charles Dickens" },
-  { id:"hardtimes", title:"Hard Times", author:"Charles Dickens", year:1854, genre:"Social Novel", chapters:37, wsPage:null, gid:786,
+  { id:"hardtimes", gid:786, title:"Hard Times", author:"Charles Dickens", year:1854, genre:"Social Novel", chapters:37, wsPage:null,
     cover:{ accent:"#2A2A2A", motif:"H" }, group:"Charles Dickens" },
-  { id:"dorrit", title:"Little Dorrit", author:"Charles Dickens", year:1857, genre:"Social Novel", chapters:70, wsPage:null, gid:9715,
+  { id:"dorrit", gid:9715, title:"Little Dorrit", author:"Charles Dickens", year:1857, genre:"Social Novel", chapters:70, wsPage:null,
     cover:{ accent:"#3A2A4A", motif:"L" }, group:"Charles Dickens" },
-  { id:"ttc", title:"A Tale of Two Cities", author:"Charles Dickens", year:1859, genre:"Historical Fiction", chapters:45,
+  { id:"ttc", gid:98, title:"A Tale of Two Cities", author:"Charles Dickens", year:1859, genre:"Historical Fiction", chapters:45,
     wsPage:(n)=>{
       const ROM=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV"];
       let book, ch;
@@ -95,182 +95,182 @@ const BOOKS = [
       return `A_Tale_of_Two_Cities/${book}/Chapter_${ROM[ch]}`;
     },
     cover:{ accent:"#3E2723", motif:"T" }, group:"Charles Dickens", featured:true },
-  { id:"ge", title:"Great Expectations", author:"Charles Dickens", year:1861, genre:"Coming of Age", chapters:59,
+  { id:"ge", gid:1400, title:"Great Expectations", author:"Charles Dickens", year:1861, genre:"Coming of Age", chapters:59,
     wsPage:(n)=>{const ROM=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV","XXV","XXVI","XXVII","XXVIII","XXIX","XXX","XXXI","XXXII","XXXIII","XXXIV","XXXV","XXXVI","XXXVII","XXXVIII","XXXIX","XL","XLI","XLII","XLIII","XLIV","XLV","XLVI","XLVII","XLVIII","XLIX","L","LI","LII","LIII","LIV","LV","LVI","LVII","LVIII","LIX"]; return ROM[n]?`Great_Expectations_(1890)/Chapter_${ROM[n]}`:null;},
     cover:{ accent:"#1A2632", motif:"G" }, group:"Charles Dickens", featured:true },
-  { id:"mutual", title:"Our Mutual Friend", author:"Charles Dickens", year:1865, genre:"Social Novel", chapters:67, wsPage:null, gid:9719,
+  { id:"mutual", gid:9719, title:"Our Mutual Friend", author:"Charles Dickens", year:1865, genre:"Social Novel", chapters:67, wsPage:null,
     cover:{ accent:"#2A3A2A", motif:"O" }, group:"Charles Dickens" },
-  { id:"drood", title:"The Mystery of Edwin Drood", author:"Charles Dickens", year:1870, genre:"Mystery", chapters:23, wsPage:null, gid:564,
+  { id:"drood", gid:564, title:"The Mystery of Edwin Drood", author:"Charles Dickens", year:1870, genre:"Mystery", chapters:23, wsPage:null,
     cover:{ accent:"#1A2A2A", motif:"E" }, group:"Charles Dickens" },
-  { id:"cc", title:"A Christmas Carol", author:"Charles Dickens", year:1843, genre:"Novella", chapters:5,
+  { id:"cc", gid:46, title:"A Christmas Carol", author:"Charles Dickens", year:1843, genre:"Novella", chapters:5,
     wsPage:(n)=>`A_Christmas_Carol_(Dickens,_1843)/Stave_${n}`,
     cover:{ accent:"#1A3A2A", motif:"C" }, group:"Charles Dickens" },
 
   // ─── ALEXANDRE DUMAS (10) ────────────────────────────────────
-  { id:"mc", title:"The Count of Monte Cristo", author:"Alexandre Dumas", year:1844, genre:"Adventure", chapters:117, wsPage:null, gid:1184,
+  { id:"mc", gid:1184, title:"The Count of Monte Cristo", author:"Alexandre Dumas", year:1844, genre:"Adventure", chapters:117, wsPage:null,
     cover:{ accent:"#1A3A4A", motif:"M" }, group:"Alexandre Dumas", featured:true },
-  { id:"musketeers", title:"The Three Musketeers", author:"Alexandre Dumas", year:1844, genre:"Adventure", chapters:67, wsPage:null, gid:1257,
+  { id:"musketeers", gid:1257, title:"The Three Musketeers", author:"Alexandre Dumas", year:1844, genre:"Adventure", chapters:67, wsPage:null,
     cover:{ accent:"#4A1A1A", motif:"3" }, group:"Alexandre Dumas", featured:true },
-  { id:"twentyyears", title:"Twenty Years After", author:"Alexandre Dumas", year:1845, genre:"Adventure", chapters:78, wsPage:null, gid:1259,
+  { id:"twentyyears", gid:1259, title:"Twenty Years After", author:"Alexandre Dumas", year:1845, genre:"Adventure", chapters:78, wsPage:null,
     cover:{ accent:"#3A1A2A", motif:"X" }, group:"Alexandre Dumas" },
-  { id:"bragelonne", title:"The Vicomte of Bragelonne", author:"Alexandre Dumas", year:1847, genre:"Adventure", chapters:75, wsPage:null, gid:18997,
+  { id:"bragelonne", gid:18997, title:"The Vicomte of Bragelonne", author:"Alexandre Dumas", year:1847, genre:"Adventure", chapters:75, wsPage:null,
     cover:{ accent:"#2A1A3A", motif:"V" }, group:"Alexandre Dumas" },
-  { id:"ironmask", title:"The Man in the Iron Mask", author:"Alexandre Dumas", year:1850, genre:"Adventure", chapters:53, wsPage:null, gid:2759,
+  { id:"ironmask", gid:2759, title:"The Man in the Iron Mask", author:"Alexandre Dumas", year:1850, genre:"Adventure", chapters:53, wsPage:null,
     cover:{ accent:"#1A1A1A", motif:"I" }, group:"Alexandre Dumas" },
-  { id:"blacktulip", title:"The Black Tulip", author:"Alexandre Dumas", year:1850, genre:"Historical Fiction", chapters:30, wsPage:null, gid:965,
+  { id:"blacktulip", gid:965, title:"The Black Tulip", author:"Alexandre Dumas", year:1850, genre:"Historical Fiction", chapters:30, wsPage:null,
     cover:{ accent:"#1A1A2A", motif:"B" }, group:"Alexandre Dumas" },
-  { id:"queensnecklace", title:"The Queen's Necklace", author:"Alexandre Dumas", year:1849, genre:"Historical Fiction", chapters:120, wsPage:null, gid:20122,
+  { id:"queensnecklace", gid:20122, title:"The Queen's Necklace", author:"Alexandre Dumas", year:1849, genre:"Historical Fiction", chapters:120, wsPage:null,
     cover:{ accent:"#3A2A1A", motif:"Q" }, group:"Alexandre Dumas" },
-  { id:"balsamo", title:"Joseph Balsamo", author:"Alexandre Dumas", year:1846, genre:"Historical Fiction", chapters:135, wsPage:null, gid:45822,
+  { id:"balsamo", gid:45822, title:"Joseph Balsamo", author:"Alexandre Dumas", year:1846, genre:"Historical Fiction", chapters:135, wsPage:null,
     cover:{ accent:"#2A2A3A", motif:"J" }, group:"Alexandre Dumas" },
-  { id:"corsican", title:"The Corsican Brothers", author:"Alexandre Dumas", year:1844, genre:"Drama", chapters:11, wsPage:null, gid:41881,
+  { id:"corsican", gid:41881, title:"The Corsican Brothers", author:"Alexandre Dumas", year:1844, genre:"Drama", chapters:11, wsPage:null,
     cover:{ accent:"#3A3A2A", motif:"C" }, group:"Alexandre Dumas" },
   // NOTE: "The Knight of Sainte-Hermine" removed — the French original is
   // public domain but the only English translation dates from 2008 and is
   // still under copyright. We cannot serve it.
 
   // ─── FYODOR DOSTOEVSKY (8) ───────────────────────────────────
-  { id:"crime", title:"Crime and Punishment", author:"Fyodor Dostoevsky", year:1866, genre:"Psychological Fiction", chapters:41, wsPage:null, gid:2554,
+  { id:"crime", gid:2554, title:"Crime and Punishment", author:"Fyodor Dostoevsky", year:1866, genre:"Psychological Fiction", chapters:41, wsPage:null,
     cover:{ accent:"#3A1A1A", motif:"C" }, group:"Fyodor Dostoevsky", featured:true },
-  { id:"idiot", title:"The Idiot", author:"Fyodor Dostoevsky", year:1869, genre:"Philosophical Fiction", chapters:46, wsPage:null, gid:2638,
+  { id:"idiot", gid:2638, title:"The Idiot", author:"Fyodor Dostoevsky", year:1869, genre:"Philosophical Fiction", chapters:46, wsPage:null,
     cover:{ accent:"#2A1A2A", motif:"I" }, group:"Fyodor Dostoevsky" },
-  { id:"demons", title:"Demons", author:"Fyodor Dostoevsky", year:1872, genre:"Political Fiction", chapters:43, wsPage:null, gid:8117,
+  { id:"demons", gid:8117, title:"Demons", author:"Fyodor Dostoevsky", year:1872, genre:"Political Fiction", chapters:43, wsPage:null,
     gq:"The Possessed Dostoyevsky", // Garnett's PD translation title on Gutenberg
     cover:{ accent:"#1A1A1A", motif:"D" }, group:"Fyodor Dostoevsky" },
-  { id:"karamazov", title:"The Brothers Karamazov", author:"Fyodor Dostoevsky", year:1880, genre:"Philosophical Fiction", chapters:96, wsPage:null, gid:28054,
+  { id:"karamazov", gid:28054, title:"The Brothers Karamazov", author:"Fyodor Dostoevsky", year:1880, genre:"Philosophical Fiction", chapters:96, wsPage:null,
     cover:{ accent:"#2A2A3A", motif:"K" }, group:"Fyodor Dostoevsky", featured:true },
-  { id:"underground", title:"Notes from the Underground", author:"Fyodor Dostoevsky", year:1864, genre:"Novella", chapters:21, wsPage:null, gid:600,
+  { id:"underground", gid:600, title:"Notes from the Underground", author:"Fyodor Dostoevsky", year:1864, genre:"Novella", chapters:21, wsPage:null,
     cover:{ accent:"#2A2A1A", motif:"U" }, group:"Fyodor Dostoevsky" },
-  { id:"gambler", title:"The Gambler", author:"Fyodor Dostoevsky", year:1867, genre:"Novella", chapters:17, wsPage:null, gid:2197,
+  { id:"gambler", gid:2197, title:"The Gambler", author:"Fyodor Dostoevsky", year:1867, genre:"Novella", chapters:17, wsPage:null,
     cover:{ accent:"#3A2A1A", motif:"G" }, group:"Fyodor Dostoevsky" },
-  // NOTE: "The Adolescent" / "A Raw Youth" removed — not available as a
-  // public-domain English text on Project Gutenberg, so we cannot serve it.
-  { id:"poorfolk", title:"Poor Folk", author:"Fyodor Dostoevsky", year:1846, genre:"Epistolary", chapters:1, wsPage:null, gid:2302,
+  // NOTE: "The Adolescent"/"A Raw Youth" removed — no public-domain
+  // English text exists on Project Gutenberg, so we cannot serve it.
+  { id:"poorfolk", gid:2302, title:"Poor Folk", author:"Fyodor Dostoevsky", year:1846, genre:"Epistolary", chapters:1, wsPage:null,
     cover:{ accent:"#2A3A3A", motif:"P" }, group:"Fyodor Dostoevsky" },
 
   // ─── LEO TOLSTOY (4) ─────────────────────────────────────────
-  { id:"warpeace", title:"War and Peace", author:"Leo Tolstoy", year:1869, genre:"Historical Fiction", chapters:361, wsPage:null, gid:2600,
+  { id:"warpeace", gid:2600, title:"War and Peace", author:"Leo Tolstoy", year:1869, genre:"Historical Fiction", chapters:361, wsPage:null,
     cover:{ accent:"#2A3A2A", motif:"W" }, group:"Leo Tolstoy", featured:true },
-  { id:"karenina", title:"Anna Karenina", author:"Leo Tolstoy", year:1877, genre:"Realist Fiction", chapters:239, wsPage:null, gid:1399,
+  { id:"karenina", gid:1399, title:"Anna Karenina", author:"Leo Tolstoy", year:1877, genre:"Realist Fiction", chapters:239, wsPage:null,
     cover:{ accent:"#3A2A2A", motif:"A" }, group:"Leo Tolstoy", featured:true },
-  { id:"cossacks", title:"The Cossacks", author:"Leo Tolstoy", year:1863, genre:"Novella", chapters:42, wsPage:null, gid:4761,
+  { id:"cossacks", gid:4761, title:"The Cossacks", author:"Leo Tolstoy", year:1863, genre:"Novella", chapters:42, wsPage:null,
     cover:{ accent:"#3A3A1A", motif:"C" }, group:"Leo Tolstoy" },
-  { id:"resurrection", title:"Resurrection", author:"Leo Tolstoy", year:1899, genre:"Realist Fiction", chapters:129, wsPage:null, gid:1938,
+  { id:"resurrection", gid:1938, title:"Resurrection", author:"Leo Tolstoy", year:1899, genre:"Realist Fiction", chapters:129, wsPage:null,
     cover:{ accent:"#2A1A3A", motif:"R" }, group:"Leo Tolstoy" },
 
   // ─── VICTOR HUGO (3) ─────────────────────────────────────────
-  { id:"miserables", title:"Les Misérables", author:"Victor Hugo", year:1862, genre:"Historical Fiction", chapters:365, wsPage:null, gid:135,
+  { id:"miserables", gid:135, title:"Les Misérables", author:"Victor Hugo", year:1862, genre:"Historical Fiction", chapters:365, wsPage:null,
     cover:{ accent:"#1A2A3A", motif:"M" }, group:"Victor Hugo", featured:true },
-  { id:"hunchback", title:"The Hunchback of Notre-Dame", author:"Victor Hugo", year:1831, genre:"Gothic Fiction", chapters:59, wsPage:null, gid:2610,
+  { id:"hunchback", gid:2610, title:"The Hunchback of Notre-Dame", author:"Victor Hugo", year:1831, genre:"Gothic Fiction", chapters:59, wsPage:null,
     gq:"Notre-Dame de Paris Hugo", // Gutenberg's title for the Hapgood translation
     cover:{ accent:"#2A1A2A", motif:"H" }, group:"Victor Hugo" },
-  { id:"toilers", title:"Toilers of the Sea", author:"Victor Hugo", year:1866, genre:"Adventure", chapters:64, wsPage:null, gid:32338,
+  { id:"toilers", gid:32338, title:"Toilers of the Sea", author:"Victor Hugo", year:1866, genre:"Adventure", chapters:64, wsPage:null,
     cover:{ accent:"#1A3A4A", motif:"T" }, group:"Victor Hugo" },
 
   // ─── WILKIE COLLINS (6) ──────────────────────────────────────
-  { id:"womaninwhite", title:"The Woman in White", author:"Wilkie Collins", year:1859, genre:"Mystery", chapters:120, wsPage:null, gid:583,
+  { id:"womaninwhite", gid:583, title:"The Woman in White", author:"Wilkie Collins", year:1859, genre:"Mystery", chapters:120, wsPage:null,
     cover:{ accent:"#3A3A4A", motif:"W" }, group:"Wilkie Collins" },
-  { id:"moonstone", title:"The Moonstone", author:"Wilkie Collins", year:1868, genre:"Detective Fiction", chapters:44, wsPage:null, gid:155,
+  { id:"moonstone", gid:155, title:"The Moonstone", author:"Wilkie Collins", year:1868, genre:"Detective Fiction", chapters:44, wsPage:null,
     cover:{ accent:"#2A2A4A", motif:"M" }, group:"Wilkie Collins" },
-  { id:"noname", title:"No Name", author:"Wilkie Collins", year:1862, genre:"Sensation Novel", chapters:54, wsPage:null, gid:1438,
+  { id:"noname", gid:1438, title:"No Name", author:"Wilkie Collins", year:1862, genre:"Sensation Novel", chapters:54, wsPage:null,
     cover:{ accent:"#3A2A3A", motif:"N" }, group:"Wilkie Collins" },
-  { id:"armadale", title:"Armadale", author:"Wilkie Collins", year:1866, genre:"Sensation Novel", chapters:60, wsPage:null, gid:1895,
+  { id:"armadale", gid:1895, title:"Armadale", author:"Wilkie Collins", year:1866, genre:"Sensation Novel", chapters:60, wsPage:null,
     cover:{ accent:"#1A3A2A", motif:"A" }, group:"Wilkie Collins" },
-  { id:"lawlady", title:"The Law and the Lady", author:"Wilkie Collins", year:1875, genre:"Detective Fiction", chapters:52, wsPage:null, gid:26481,
+  { id:"lawlady", gid:26481, title:"The Law and the Lady", author:"Wilkie Collins", year:1875, genre:"Detective Fiction", chapters:52, wsPage:null,
     cover:{ accent:"#3A2A1A", motif:"L" }, group:"Wilkie Collins" },
-  { id:"missfinch", title:"Poor Miss Finch", author:"Wilkie Collins", year:1872, genre:"Sensation Novel", chapters:50, wsPage:null, gid:3632,
+  { id:"missfinch", gid:3632, title:"Poor Miss Finch", author:"Wilkie Collins", year:1872, genre:"Sensation Novel", chapters:50, wsPage:null,
     cover:{ accent:"#2A3A1A", motif:"P" }, group:"Wilkie Collins" },
 
   // ─── HENRY JAMES (5) ─────────────────────────────────────────
-  { id:"portrait", title:"The Portrait of a Lady", author:"Henry James", year:1881, genre:"Realist Fiction", chapters:55, wsPage:null, gid:2833,
+  { id:"portrait", gid:2833, title:"The Portrait of a Lady", author:"Henry James", year:1881, genre:"Realist Fiction", chapters:55, wsPage:null,
     cover:{ accent:"#3A2A2A", motif:"P" }, group:"Henry James" },
-  { id:"wings", title:"The Wings of the Dove", author:"Henry James", year:1902, genre:"Psychological Fiction", chapters:38, wsPage:null, gid:29452,
+  { id:"wings", gid:29452, title:"The Wings of the Dove", author:"Henry James", year:1902, genre:"Psychological Fiction", chapters:38, wsPage:null,
     cover:{ accent:"#2A3A3A", motif:"W" }, group:"Henry James" },
-  { id:"ambassadors", title:"The Ambassadors", author:"Henry James", year:1903, genre:"Psychological Fiction", chapters:36, wsPage:null, gid:432,
+  { id:"ambassadors", gid:432, title:"The Ambassadors", author:"Henry James", year:1903, genre:"Psychological Fiction", chapters:36, wsPage:null,
     cover:{ accent:"#3A3A2A", motif:"A" }, group:"Henry James" },
-  { id:"goldenbowl", title:"The Golden Bowl", author:"Henry James", year:1904, genre:"Psychological Fiction", chapters:42, wsPage:null, gid:4264,
+  { id:"goldenbowl", gid:4264, title:"The Golden Bowl", author:"Henry James", year:1904, genre:"Psychological Fiction", chapters:42, wsPage:null,
     cover:{ accent:"#4A3A1A", motif:"G" }, group:"Henry James" },
-  { id:"bostonians", title:"The Bostonians", author:"Henry James", year:1886, genre:"Realist Fiction", chapters:42, wsPage:null, gid:19717,
+  { id:"bostonians", gid:19717, title:"The Bostonians", author:"Henry James", year:1886, genre:"Realist Fiction", chapters:42, wsPage:null,
     cover:{ accent:"#2A2A3A", motif:"B" }, group:"Henry James" },
 
   // ─── MARK TWAIN (5) ──────────────────────────────────────────
-  { id:"tomsawyer", title:"The Adventures of Tom Sawyer", author:"Mark Twain", year:1876, genre:"Coming of Age", chapters:35, wsPage:null, gid:74,
+  { id:"tomsawyer", gid:74, title:"The Adventures of Tom Sawyer", author:"Mark Twain", year:1876, genre:"Coming of Age", chapters:35, wsPage:null,
     cover:{ accent:"#3A2A1A", motif:"T" }, group:"Mark Twain", featured:true },
-  { id:"huck", title:"Adventures of Huckleberry Finn", author:"Mark Twain", year:1884, genre:"Picaresque", chapters:43, wsPage:null, gid:76,
+  { id:"huck", gid:76, title:"Adventures of Huckleberry Finn", author:"Mark Twain", year:1884, genre:"Picaresque", chapters:43, wsPage:null,
     cover:{ accent:"#2A3A2A", motif:"H" }, group:"Mark Twain", featured:true },
-  { id:"connecticut", title:"A Connecticut Yankee in King Arthur's Court", author:"Mark Twain", year:1889, genre:"Satire", chapters:44, wsPage:null, gid:86,
+  { id:"connecticut", gid:86, title:"A Connecticut Yankee in King Arthur's Court", author:"Mark Twain", year:1889, genre:"Satire", chapters:44, wsPage:null,
     cover:{ accent:"#1A2A3A", motif:"C" }, group:"Mark Twain" },
-  { id:"americanclaimant", title:"The American Claimant", author:"Mark Twain", year:1892, genre:"Satire", chapters:25, wsPage:null, gid:3179,
+  { id:"americanclaimant", gid:3179, title:"The American Claimant", author:"Mark Twain", year:1892, genre:"Satire", chapters:25, wsPage:null,
     cover:{ accent:"#3A3A1A", motif:"A" }, group:"Mark Twain" },
-  { id:"joanofarc", title:"Personal Recollections of Joan of Arc", author:"Mark Twain", year:1896, genre:"Historical Fiction", chapters:60, wsPage:null, gid:2874,
+  { id:"joanofarc", gid:2874, title:"Personal Recollections of Joan of Arc", author:"Mark Twain", year:1896, genre:"Historical Fiction", chapters:60, wsPage:null,
     cover:{ accent:"#2A1A2A", motif:"J" }, group:"Mark Twain" },
 
   // ─── ARTHUR CONAN DOYLE (6) ──────────────────────────────────
-  { id:"scarlet", title:"A Study in Scarlet", author:"Arthur Conan Doyle", year:1887, genre:"Mystery", chapters:14, wsPage:null, gid:244,
+  { id:"scarlet", gid:244, title:"A Study in Scarlet", author:"Arthur Conan Doyle", year:1887, genre:"Mystery", chapters:14, wsPage:null,
     cover:{ accent:"#4A1A1A", motif:"S" }, group:"Arthur Conan Doyle" },
-  { id:"signoffour", title:"The Sign of the Four", author:"Arthur Conan Doyle", year:1890, genre:"Mystery", chapters:12, wsPage:null, gid:2097,
+  { id:"signoffour", gid:2097, title:"The Sign of the Four", author:"Arthur Conan Doyle", year:1890, genre:"Mystery", chapters:12, wsPage:null,
     cover:{ accent:"#3A2A2A", motif:"4" }, group:"Arthur Conan Doyle" },
-  { id:"baskervilles", title:"The Hound of the Baskervilles", author:"Arthur Conan Doyle", year:1902, genre:"Mystery", chapters:15, wsPage:null, gid:2852,
+  { id:"baskervilles", gid:2852, title:"The Hound of the Baskervilles", author:"Arthur Conan Doyle", year:1902, genre:"Mystery", chapters:15, wsPage:null,
     cover:{ accent:"#1A2A1A", motif:"H" }, group:"Arthur Conan Doyle", featured:true },
-  { id:"sher", title:"The Adventures of Sherlock Holmes", author:"Arthur Conan Doyle", year:1892, genre:"Mystery", chapters:12,
+  { id:"sher", gid:1661, title:"The Adventures of Sherlock Holmes", author:"Arthur Conan Doyle", year:1892, genre:"Mystery", chapters:12,
     wsPage:(n)=>{const t=["","A_Scandal_in_Bohemia","The_Red-Headed_League","A_Case_of_Identity","The_Boscombe_Valley_Mystery","The_Five_Orange_Pips","The_Man_with_the_Twisted_Lip","The_Adventure_of_the_Blue_Carbuncle","The_Adventure_of_the_Speckled_Band","The_Adventure_of_the_Engineer's_Thumb","The_Adventure_of_the_Noble_Bachelor","The_Adventure_of_the_Beryl_Coronet","The_Adventure_of_the_Copper_Beeches"];return t[n]?`The_Adventures_of_Sherlock_Holmes/${t[n]}`:null;},
     cover:{ accent:"#3A2A1A", motif:"S" }, group:"Arthur Conan Doyle", featured:true },
-  { id:"memoirssh", title:"The Memoirs of Sherlock Holmes", author:"Arthur Conan Doyle", year:1894, genre:"Mystery", chapters:12, wsPage:null, gid:834,
+  { id:"memoirssh", gid:834, title:"The Memoirs of Sherlock Holmes", author:"Arthur Conan Doyle", year:1894, genre:"Mystery", chapters:12, wsPage:null,
     cover:{ accent:"#2A2A1A", motif:"M" }, group:"Arthur Conan Doyle" },
-  { id:"returnsh", title:"The Return of Sherlock Holmes", author:"Arthur Conan Doyle", year:1905, genre:"Mystery", chapters:13, wsPage:null, gid:108,
+  { id:"returnsh", gid:108, title:"The Return of Sherlock Holmes", author:"Arthur Conan Doyle", year:1905, genre:"Mystery", chapters:13, wsPage:null,
     cover:{ accent:"#2A1A1A", motif:"R" }, group:"Arthur Conan Doyle" },
 
   // ─── JULES VERNE (6) ─────────────────────────────────────────
-  { id:"eightydays", title:"Around the World in Eighty Days", author:"Jules Verne", year:1873, genre:"Adventure", chapters:37, wsPage:null, gid:103,
+  { id:"eightydays", gid:103, title:"Around the World in Eighty Days", author:"Jules Verne", year:1873, genre:"Adventure", chapters:37, wsPage:null,
     cover:{ accent:"#2A3A4A", motif:"8" }, group:"Jules Verne", featured:true },
-  { id:"twentyleagues", title:"Twenty Thousand Leagues Under the Seas", author:"Jules Verne", year:1870, genre:"Science Fiction", chapters:46, wsPage:null, gid:2488,
+  { id:"twentyleagues", gid:2488, title:"Twenty Thousand Leagues Under the Seas", author:"Jules Verne", year:1870, genre:"Science Fiction", chapters:46, wsPage:null,
     cover:{ accent:"#1A2A4A", motif:"2" }, group:"Jules Verne" },
-  { id:"journey", title:"Journey to the Center of the Earth", author:"Jules Verne", year:1864, genre:"Science Fiction", chapters:45, wsPage:null, gid:19513,
+  { id:"journey", gid:19513, title:"Journey to the Center of the Earth", author:"Jules Verne", year:1864, genre:"Science Fiction", chapters:45, wsPage:null,
     cover:{ accent:"#2A1A1A", motif:"J" }, group:"Jules Verne" },
-  { id:"earthtomoon", title:"From the Earth to the Moon", author:"Jules Verne", year:1865, genre:"Science Fiction", chapters:28, wsPage:null, gid:83,
+  { id:"earthtomoon", gid:83, title:"From the Earth to the Moon", author:"Jules Verne", year:1865, genre:"Science Fiction", chapters:28, wsPage:null,
     cover:{ accent:"#1A1A3A", motif:"M" }, group:"Jules Verne" },
-  { id:"mysteriousisland", title:"The Mysterious Island", author:"Jules Verne", year:1875, genre:"Adventure", chapters:62, wsPage:null, gid:1268,
+  { id:"mysteriousisland", gid:1268, title:"The Mysterious Island", author:"Jules Verne", year:1875, genre:"Adventure", chapters:62, wsPage:null,
     cover:{ accent:"#2A3A2A", motif:"I" }, group:"Jules Verne" },
-  { id:"strogoff", title:"Michael Strogoff", author:"Jules Verne", year:1876, genre:"Adventure", chapters:32, wsPage:null, gid:1842,
+  { id:"strogoff", gid:1842, title:"Michael Strogoff", author:"Jules Verne", year:1876, genre:"Adventure", chapters:32, wsPage:null,
     cover:{ accent:"#3A2A2A", motif:"S" }, group:"Jules Verne" },
 
   // ─── JOSEPH CONRAD (4) ───────────────────────────────────────
-  { id:"heartdarkness", title:"Heart of Darkness", author:"Joseph Conrad", year:1899, genre:"Novella", chapters:3, wsPage:null, gid:219,
+  { id:"heartdarkness", gid:219, title:"Heart of Darkness", author:"Joseph Conrad", year:1899, genre:"Novella", chapters:3, wsPage:null,
     cover:{ accent:"#1A1A1A", motif:"H" }, group:"Joseph Conrad", featured:true },
-  { id:"lordjim", title:"Lord Jim", author:"Joseph Conrad", year:1900, genre:"Psychological Fiction", chapters:45, wsPage:null, gid:21435,
+  { id:"lordjim", gid:21435, title:"Lord Jim", author:"Joseph Conrad", year:1900, genre:"Psychological Fiction", chapters:45, wsPage:null,
     cover:{ accent:"#2A1A2A", motif:"L" }, group:"Joseph Conrad" },
-  { id:"nostromo", title:"Nostromo", author:"Joseph Conrad", year:1904, genre:"Political Fiction", chapters:39, wsPage:null, gid:2021,
+  { id:"nostromo", gid:2021, title:"Nostromo", author:"Joseph Conrad", year:1904, genre:"Political Fiction", chapters:39, wsPage:null,
     cover:{ accent:"#2A2A1A", motif:"N" }, group:"Joseph Conrad" },
-  { id:"secretagent", title:"The Secret Agent", author:"Joseph Conrad", year:1907, genre:"Political Fiction", chapters:13, wsPage:null, gid:974,
+  { id:"secretagent", gid:974, title:"The Secret Agent", author:"Joseph Conrad", year:1907, genre:"Political Fiction", chapters:13, wsPage:null,
     cover:{ accent:"#1A2A1A", motif:"S" }, group:"Joseph Conrad" },
 
   // ─── LEGACY CATALOG (kept from original — popular classics not on Cole's list) ─
-  { id:"pp", title:"Pride and Prejudice", author:"Jane Austen", year:1813, genre:"Romance", chapters:61,
+  { id:"pp", gid:1342, title:"Pride and Prejudice", author:"Jane Austen", year:1813, genre:"Romance", chapters:61,
     wsPage:(n)=>`Pride_and_Prejudice/Chapter_${n}`,
     cover:{ accent:"#3A5A3A", motif:"P" }, group:"Other Classics", featured:true },
-  { id:"je", title:"Jane Eyre", author:"Charlotte Brontë", year:1847, genre:"Gothic Romance", chapters:38,
+  { id:"je", gid:1260, title:"Jane Eyre", author:"Charlotte Brontë", year:1847, genre:"Gothic Romance", chapters:38,
     wsPage:(n)=>{const rom=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV","XXV","XXVI","XXVII","XXVIII","XXIX","XXX","XXXI","XXXII","XXXIII","XXXIV","XXXV","XXXVI","XXXVII","XXXVIII"];return`Jane_Eyre_(1st_edition)/Chapter_${rom[n]}`;},
     cover:{ accent:"#2A3A4A", motif:"J" }, group:"Other Classics", featured:true },
-  { id:"frank", title:"Frankenstein", author:"Mary Shelley", year:1818, genre:"Gothic Horror", chapters:24, wsPage:null, gid:84,
+  { id:"frank", gid:84, title:"Frankenstein", author:"Mary Shelley", year:1818, genre:"Gothic Horror", chapters:24, wsPage:null,
     cover:{ accent:"#1A2A3A", motif:"F" }, group:"Other Classics" },
-  { id:"drac", title:"Dracula", author:"Bram Stoker", year:1897, genre:"Gothic Horror", chapters:27,
+  { id:"drac", gid:345, title:"Dracula", author:"Bram Stoker", year:1897, genre:"Gothic Horror", chapters:27,
     wsPage:(n)=>`Dracula/Chapter_${n}`,
     cover:{ accent:"#0D0D1A", motif:"D" }, group:"Other Classics" },
-  { id:"alice", title:"Alice in Wonderland", author:"Lewis Carroll", year:1865, genre:"Fantasy", chapters:12,
+  { id:"alice", gid:11, title:"Alice in Wonderland", author:"Lewis Carroll", year:1865, genre:"Fantasy", chapters:12,
     wsPage:(n)=>`Alice's_Adventures_in_Wonderland_(1866)/Chapter_${n}`,
     cover:{ accent:"#4A5A6A", motif:"A" }, group:"Other Classics" },
-  { id:"ti", title:"Treasure Island", author:"R. L. Stevenson", year:1883, genre:"Adventure", chapters:34,
+  { id:"ti", gid:120, title:"Treasure Island", author:"R. L. Stevenson", year:1883, genre:"Adventure", chapters:34,
     wsPage:(n)=>`Treasure_Island/Chapter_${n}`,
     cover:{ accent:"#1E3A4A", motif:"T" }, group:"Other Classics" },
-  { id:"odyss", title:"The Odyssey", author:"Homer (Butler transl.)", year:-800, genre:"Epic Poetry", chapters:24,
+  { id:"odyss", gid:1727, title:"The Odyssey", author:"Homer (Butler transl.)", year:-800, genre:"Epic Poetry", chapters:24,
     wsPage:(n)=>`The_Odyssey_(Butler)/Book_${["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV"][n]}`,
     cover:{ accent:"#1A4A5A", motif:"O" }, group:"Other Classics" },
-  { id:"war", title:"The Art of War", author:"Sun Tzu (Giles transl.)", year:-500, genre:"Philosophy", chapters:13,
+  { id:"war", gid:132, title:"The Art of War", author:"Sun Tzu (Giles transl.)", year:-500, genre:"Philosophy", chapters:13,
     wsPage:(n)=>{const NAMES=["","Laying_Plans","Waging_War","Attack_by_Stratagem","Tactical_Dispositions","Energy","Weak_Points_and_Strong","Maneuvering","Variation_in_Tactics","The_Army_on_the_March","Terrain","The_Nine_Situations","The_Attack_by_Fire","The_Use_of_Spies"]; return NAMES[n]?`The_Art_of_War_(Giles)/${NAMES[n]}`:null;},
     cover:{ accent:"#4A1A1A", motif:"A" }, group:"Other Classics" },
-  { id:"med", title:"Meditations", author:"Marcus Aurelius", year:180, genre:"Philosophy", chapters:12, wsPage:null, gid:2680,
+  { id:"med", gid:2680, title:"Meditations", author:"Marcus Aurelius", year:180, genre:"Philosophy", chapters:12, wsPage:null,
     cover:{ accent:"#3A3A5A", motif:"M" }, group:"Other Classics" },
-  { id:"prince", title:"The Prince", author:"Niccolò Machiavelli", year:1532, genre:"Political Philosophy", chapters:26,
+  { id:"prince", gid:1232, title:"The Prince", author:"Niccolò Machiavelli", year:1532, genre:"Political Philosophy", chapters:26,
     wsPage:(n)=>{const ROM=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV","XXV","XXVI"]; return ROM[n]?`The_Prince_(Hill_Thomson)/Chapter_${ROM[n]}`:null;},
     cover:{ accent:"#2A1A1A", motif:"P" }, group:"Other Classics" },
 ];
@@ -318,7 +318,7 @@ const gidCache = {}; // bookId → gutenberg id (also persisted to storage)
 async function fetchChapterGutenberg(b, num) {
   try {
     // Reuse a previously-resolved Gutenberg ID if we have one.
-    let gid = gidCache[b.id] || b.gid; // b.gid is baked into the catalog so we skip Gutendex resolution (blocked from serverless egress)
+    let gid = gidCache[b.id] || b.gid; // baked catalog id; skips Gutendex resolution (blocked from Vercel egress)
     if (!gid) {
       try { const r = await window.storage.get(`ch7-gid-${b.id}`); if (r?.value) gid = gidCache[b.id] = r.value; } catch {}
     }
@@ -338,6 +338,87 @@ async function fetchChapterGutenberg(b, num) {
     }
     return d?.ok && typeof d.text === "string" && d.text.length > 200 ? d.text : null;
   } catch { return null; }
+}
+
+// ─── SERVER SUBSCRIPTION SYNC (/api/subscriptions) ──────────────
+// When a database is configured on the server, every subscription is
+// mirrored there so the daily cron (/api/cron) can deliver chapters without
+// a browser tab being open. The server returns a `token` which becomes the
+// subscription's cross-device identity (used in unsubscribe links and for
+// progress sync). When the server has no DB, calls return {reason:"no-db"}
+// and the app keeps working exactly as before — local-only.
+const SUBS_API_URL = "/api/subscriptions";
+
+async function serverCreateSub(sub) {
+  try {
+    const r = await fetch(SUBS_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: sub.email, bookId: sub.bookId, plan: sub.plan,
+        scheduleDays: sub.scheduleDays, chaptersPerDelivery: sub.chaptersPerDelivery,
+        friends: sub.friends || [], currentChapter: sub.currentChapter || 0,
+        lastDeliveryDate: sub.lastDeliveryDate || null,
+      }),
+    });
+    const d = await r.json().catch(() => ({}));
+    return d?.ok && d.token ? d.token : null;
+  } catch { return null; }
+}
+
+async function serverPatchSub(token, fields) {
+  if (!token) return false;
+  try {
+    const r = await fetch(SUBS_API_URL, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, ...fields }),
+    });
+    return (await r.json().catch(() => ({})))?.ok === true;
+  } catch { return false; }
+}
+
+async function serverDeleteSub(token) {
+  if (!token) return false;
+  try {
+    const r = await fetch(SUBS_API_URL, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+    return (await r.json().catch(() => ({})))?.ok === true;
+  } catch { return false; }
+}
+
+async function serverGetSub(token) {
+  if (!token) return null;
+  try {
+    const r = await fetch(`${SUBS_API_URL}?token=${encodeURIComponent(token)}`);
+    const d = await r.json().catch(() => ({}));
+    return d?.ok ? d.sub : null;
+  } catch { return null; }
+}
+
+// ─── STRIPE CHECKOUT (/api/checkout) ────────────────────────────
+// Returns {url} to redirect to when Stripe is configured, or
+// {reason:"not-configured"} — in which case the caller falls back to the
+// free-beta behavior (plan activates without payment).
+async function startCheckout(plan, email, bookId) {
+  try {
+    const r = await fetch("/api/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan, email, bookId }),
+    });
+    return await r.json().catch(() => ({ ok: false }));
+  } catch { return { ok: false }; }
+}
+
+async function verifyCheckout(sessionId) {
+  try {
+    const r = await fetch(`/api/checkout?session_id=${encodeURIComponent(sessionId)}`);
+    return await r.json().catch(() => ({ ok: false }));
+  } catch { return { ok: false }; }
 }
 
 // ─── CLAUDE PROXY (server-side, /api/claude) ───────────────────
@@ -375,11 +456,16 @@ async function getAIPrelude(text, title, chNum) {
 }
 
 // ─── SEND EMAIL VIA SERVER PROXY ────────────────────────────────
-async function sendEmail(to, subject, html, text) {
+async function sendEmail(to, subject, html, text, token) {
   if (!EMAIL_API_URL) return { ok: false, error: "Email not configured" };
   const recipients = Array.isArray(to) ? to : [to];
   try {
     const origin = (typeof window !== "undefined" && window.location?.origin) || "https://the-chapter-one.vercel.app";
+    // Token-based link works from any device (server-side pause). Falls back
+    // to the in-app hash route when the sub isn't server-registered.
+    const unsubscribeUrl = token
+      ? `${origin}/api/unsubscribe?token=${encodeURIComponent(token)}`
+      : `${origin}/app#unsubscribe`;
     const r = await fetch(EMAIL_API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -387,7 +473,7 @@ async function sendEmail(to, subject, html, text) {
         to: recipients, subject, html, text,
         // Surfaced as List-Unsubscribe / List-Unsubscribe-Post headers by the
         // serverless function. Required by Gmail/Yahoo bulk-sender rules.
-        unsubscribeUrl: `${origin}/app#unsubscribe`,
+        unsubscribeUrl,
       }),
     });
     if (r.ok) return { ok: true, ...(await r.json()) };
@@ -646,7 +732,34 @@ export default function App() {
     try { const r = await window.storage.get("ch7-streak"); if (r?.value) setStreak(JSON.parse(r.value)); } catch {}
     try { const r = await window.storage.get("ch7-prefs"); if (r?.value) { const p = JSON.parse(r.value); setTheme(p.t||"sepia"); setFontFam(p.f||"serif"); setFontSize(p.s||19); } } catch {}
     try { const r = await window.storage.get("ch7-email"); if (r?.value) setUserEmail(r.value); } catch {}
-    try { const r = await window.storage.get("ch7-plan"); if (r?.value) setUserPlan(r.value); } catch {}
+    try { const r = await window.storage.get("ch7-plan"); if (r?.value) { setUserPlan(r.value); planRef.current = r.value; } } catch {}
+
+    // ─── Cross-device progress sync ───
+    // The cron advances current_chapter server-side while no tab is open.
+    // Pull the authoritative counters for server-managed subs so the local
+    // progress bars and "next chapter" pointers match what was emailed.
+    try {
+      const r = await window.storage.get("ch7-subs");
+      const local = r?.value ? JSON.parse(r.value) : [];
+      const managed = local.filter(s => s.token);
+      if (managed.length) {
+        const fresh = await Promise.all(managed.map(s => serverGetSub(s.token)));
+        let changed = false;
+        const merged = local.map(s => {
+          const f = s.token ? fresh[managed.findIndex(m => m.token === s.token)] : null;
+          if (!f) return s;
+          if (f.currentChapter > (s.currentChapter || 0) || f.paused !== s.paused) {
+            changed = true;
+            return { ...s, currentChapter: Math.max(s.currentChapter || 0, f.currentChapter), paused: f.paused };
+          }
+          return s;
+        });
+        if (changed) {
+          setSubs(merged); subsRef.current = merged;
+          try { await window.storage.set("ch7-subs", JSON.stringify(merged)); } catch {}
+        }
+      }
+    } catch {}
   })(); }, []);
 
   // ─── URL params (from landing page CTA) ───
@@ -661,6 +774,42 @@ export default function App() {
       return;
     }
     const params = new URLSearchParams(window.location.search);
+
+    // ─── Stripe checkout return ───
+    // The plan is applied only after server-side verification of the session
+    // (the client never asserts "I paid" — Stripe does, via /api/checkout).
+    const checkout = params.get("checkout");
+    const sessionId = params.get("session_id");
+    if (checkout === "success" && sessionId) {
+      (async () => {
+        const d = await verifyCheckout(sessionId);
+        if (d?.ok && (d.plan === "monthly" || d.plan === "annual")) {
+          svPlan(d.plan);
+          showToast("★ Premium activated — all books, all chapters. Thank you!", "success");
+        } else if (d?.ok && d.plan === "alacarte" && d.bookId) {
+          try {
+            // Read subs straight from storage — state may not be hydrated yet.
+            const r = await window.storage.get("ch7-subs");
+            const cur = r?.value ? JSON.parse(r.value) : [];
+            const upd = cur.map(s => s.bookId === d.bookId ? { ...s, plan: "alacarte" } : s);
+            await saveSubs(upd);
+            const s = upd.find(x => x.bookId === d.bookId);
+            if (s?.token) serverPatchSub(s.token, { plan: "alacarte" });
+          } catch {}
+          showToast("★ Book unlocked — every chapter is yours. Thank you!", "success");
+        } else {
+          showToast("We couldn't verify the payment. If you were charged, please contact support.", "error");
+        }
+      })();
+      window.history.replaceState({}, "", window.location.pathname);
+      return;
+    }
+    if (checkout === "cancel") {
+      showToast("Checkout canceled — you're still on the free plan.", "info");
+      window.history.replaceState({}, "", window.location.pathname);
+      return;
+    }
+
     const email = params.get("email");
     const bookId = params.get("book");
     if (bookId) {
@@ -700,6 +849,25 @@ export default function App() {
     const y = new Date(Date.now()-86400000).toDateString();
     const nc = streak.lastDate === y ? streak.current+1 : 1;
     saveStreak({ current:nc, best:Math.max(streak.best,nc), lastDate:today });
+  };
+
+  // ─── Subscription mutations (local + server mirror) ───
+  const togglePause = (bookId) => {
+    const s = subs.find(x=>x.bookId===bookId); if(!s) return;
+    const paused = !s.paused;
+    saveSubs(subs.map(x=>x.bookId===bookId?{...x,paused}:x));
+    if(s.token) serverPatchSub(s.token,{paused}); // fire-and-forget
+  };
+  const removeSub = (bookId) => {
+    const s = subs.find(x=>x.bookId===bookId);
+    saveSubs(subs.filter(x=>x.bookId!==bookId));
+    saveInbox(inbox.filter(x=>x.bookId!==bookId));
+    if(s?.token) serverDeleteSub(s.token);
+    showToast("Unsubscribed.","info");
+  };
+  const pauseAll = () => {
+    saveSubs(subs.map(s=>({...s,paused:true})));
+    subs.forEach(s=>{ if(s.token) serverPatchSub(s.token,{paused:true}); });
   };
 
   const genres = useMemo(()=>["All",...new Set(BOOKS.map(b=>b.genre))].sort(),[]);
@@ -784,7 +952,7 @@ export default function App() {
       const subject = `📖 ${b.title} — ${chLabel}`;
       const html = buildEmailHTML(b, chapters);
       const txt = buildEmailText(b, chapters);
-      const result = await sendEmail(recipients, subject, html, txt);
+      const result = await sendEmail(recipients, subject, html, txt, sub.token);
       if(result.ok){
         emailStatus = "sent";
       } else {
@@ -817,6 +985,12 @@ export default function App() {
     const { items, emailStatus, emailError } = await deliverChapters(newSub, 1, cpd);
     newSub.currentChapter = items.length;
     newSub.lastDeliveryDate = new Date().toISOString();
+
+    // Register with the server so the daily cron takes over scheduled
+    // deliveries (works even when no tab is open). If the server has no DB
+    // this quietly returns null and the in-browser engine keeps handling it.
+    const token = await serverCreateSub(newSub);
+    if (token) { newSub.token = token; newSub.serverManaged = true; }
 
     const updSubs = [...subs.filter(s=>s.bookId!==bookId), newSub];
     await saveSubs(updSubs);
@@ -853,6 +1027,9 @@ export default function App() {
     for(let i=0; i<updated.length; i++){
       const sub = updated[i];
       if(sub.paused || !sub.email) continue;
+      // Server-managed subscriptions are delivered by the daily cron
+      // (/api/cron) — skipping them here prevents double-sends.
+      if(sub.serverManaged) continue;
       const b = BOOKS.find(x=>x.id===sub.bookId);
       if(!b || sub.currentChapter>=b.chapters) continue;
       const prem = planRef.current==="monthly" || planRef.current==="annual" || sub.plan==="alacarte" || sub.plan==="paid";
@@ -1135,7 +1312,7 @@ export default function App() {
                     const s = getSub(book.id);
                     if (s) { setSettingsDraft({email:s.email, scheduleDays:[...(s.scheduleDays||[])], chaptersPerDelivery:s.chaptersPerDelivery||1, friends:[...(s.friends||[])]}); setSettingsFor(book.id); }
                   }}>⚙</button>
-                  <button className="b bg" onClick={()=>saveSubs(subs.map(s=>s.bookId===book.id?{...s,paused:!s.paused}:s))}>{curSub.paused?"▶":"⏸"}</button>
+                  <button className="b bg" onClick={()=>togglePause(book.id)}>{curSub.paused?"▶":"⏸"}</button>
                 </div>
               </div>
               <div className="prg" style={{marginBottom:4}}><div className="prg-f" style={{width:`${Math.round((curSub.currentChapter/book.chapters)*100)}%`}} /></div>
@@ -1314,7 +1491,7 @@ export default function App() {
                   : "No subscriptions found in this browser. Subscriptions are stored on the device where you signed up — open this link there to manage them, or reply to any chapter email and we'll remove you manually."}
               </p>
               {subs.length>0&&<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                <button className="b bp" style={{fontSize:12}} onClick={()=>{saveSubs(subs.map(s=>({...s,paused:true})));setUnsubMode(false);showToast("All deliveries paused. Resume any book below whenever you like.","success");}}>⏸ Pause all deliveries</button>
+                <button className="b bp" style={{fontSize:12}} onClick={()=>{pauseAll();setUnsubMode(false);showToast("All deliveries paused. Resume any book below whenever you like.","success");}}>⏸ Pause all deliveries</button>
                 <button className="b bg" style={{fontSize:12}} onClick={()=>setUnsubMode(false)}>Dismiss</button>
               </div>}
             </div>
@@ -1343,8 +1520,8 @@ export default function App() {
                     <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                       <button className="b bo" style={{fontSize:11,padding:"5px 12px"}} onClick={()=>nav("inbox")}>Inbox</button>
                       <button className="b bo" style={{fontSize:11,padding:"5px 12px"}} onClick={()=>{setBook(b);nav("book");}}>View</button>
-                      <button className="b bg" style={{fontSize:11}} onClick={()=>saveSubs(subs.map(s=>s.bookId===sub.bookId?{...s,paused:!s.paused}:s))}>{sub.paused?"▶":"⏸"}</button>
-                      <button className="b bg" style={{fontSize:11,color:"#B55"}} onClick={()=>{saveSubs(subs.filter(s=>s.bookId!==sub.bookId));saveInbox(inbox.filter(x=>x.bookId!==sub.bookId));showToast("Unsubscribed.","info");}}>✕</button>
+                      <button className="b bg" style={{fontSize:11}} onClick={()=>togglePause(sub.bookId)}>{sub.paused?"▶":"⏸"}</button>
+                      <button className="b bg" style={{fontSize:11,color:"#B55"}} onClick={()=>removeSub(sub.bookId)}>✕</button>
                     </div>
                   </div>
                 </div>
@@ -1431,10 +1608,38 @@ export default function App() {
 
             {/* Submit */}
             <button className="b bp" style={{width:"100%",justifyContent:"center",padding:"13px",fontSize:14}} disabled={!subModal.email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(subModal.email)||!subModal.days?.length||delivering} onClick={async ()=>{
+              const friends = subModal.friends.split(",").map(e=>e.trim()).filter(e=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+              const paidPlan = ["monthly","annual","alacarte"].includes(subModal.plan);
+
+              // Real payment path — only when Stripe is configured on the
+              // server. The subscription (schedule + Chapter 1) is created
+              // BEFORE redirecting so nothing is lost if checkout is
+              // abandoned; the plan itself is applied on verified return.
+              if(paidPlan){
+                setDelivering(true);
+                const co = await startCheckout(subModal.plan, subModal.email, wb.id);
+                if(co?.ok && co.url){
+                  if(isUp){
+                    const cur = getSub(wb.id);
+                    saveSubs(subs.map(s=>s.bookId===wb.id?{...s,email:subModal.email,friends,scheduleDays:subModal.days,chaptersPerDelivery:subModal.cpd}:s));
+                    if(cur?.token) serverPatchSub(cur.token,{email:subModal.email,friends,scheduleDays:subModal.days,chaptersPerDelivery:subModal.cpd});
+                    if(subModal.email!==userEmail) svEmail(subModal.email);
+                  } else {
+                    await subscribe(subModal.bookId, subModal.email, subModal.days, subModal.cpd, subModal.friends||"", "free");
+                  }
+                  showToast("Redirecting to secure checkout…","info");
+                  window.location.href = co.url;
+                  return;
+                }
+                setDelivering(false);
+                // Stripe not configured → fall through to free-beta behavior.
+              }
+
               if(isUp){
-                const friends = subModal.friends.split(",").map(e=>e.trim()).filter(e=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
                 if(subModal.plan==="monthly"||subModal.plan==="annual") svPlan(subModal.plan);
+                const cur = getSub(wb.id);
                 saveSubs(subs.map(s=>s.bookId===wb.id?{...s,plan:subModal.plan,email:subModal.email,friends,scheduleDays:subModal.days,chaptersPerDelivery:subModal.cpd}:s));
+                if(cur?.token) serverPatchSub(cur.token,{plan:subModal.plan,email:subModal.email,friends,scheduleDays:subModal.days,chaptersPerDelivery:subModal.cpd});
                 if(subModal.email!==userEmail) svEmail(subModal.email);
                 setSubModal(null);
                 showToast(subModal.plan==="monthly"||subModal.plan==="annual"?"★ Premium activated! All books unlocked.":`★ ${wb.title} fully unlocked!`,"success");
@@ -1493,7 +1698,9 @@ export default function App() {
             </div>
             <div style={{display:"flex",gap:6}}>
               <button className="b bp" style={{flex:1}} disabled={!valid} onClick={()=>{
+                const cur = subs.find(s=>s.bookId===settingsFor);
                 saveSubs(subs.map(s=>s.bookId===settingsFor?{...s,email:sd.email,scheduleDays:sd.scheduleDays,chaptersPerDelivery:sd.chaptersPerDelivery,friends:sd.friends}:s));
+                if(cur?.token) serverPatchSub(cur.token,{email:sd.email,scheduleDays:sd.scheduleDays,chaptersPerDelivery:sd.chaptersPerDelivery,friends:sd.friends});
                 close();
                 showToast("Settings saved.","success");
               }}>Save</button>

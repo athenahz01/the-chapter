@@ -6,6 +6,13 @@
   "functions": {
     "api/claude.js": { "maxDuration": 30 },
     "api/send.js": { "maxDuration": 10 },
-    "api/gutenberg.js": { "maxDuration": 30 }
-  }
+    "api/gutenberg.js": { "maxDuration": 30 },
+    "api/cron.js": { "maxDuration": 60 },
+    "api/subscriptions.js": { "maxDuration": 10 },
+    "api/unsubscribe.js": { "maxDuration": 10 },
+    "api/checkout.js": { "maxDuration": 15 }
+  },
+  "crons": [
+    { "path": "/api/cron", "schedule": "0 12 * * *" }
+  ]
 }

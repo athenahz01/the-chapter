@@ -2,7 +2,7 @@
 
 Classic literature delivered to your inbox, chapter by chapter.
 
-Vite + React app on Vercel, with three serverless functions.
+Vite + React app on Vercel, with a serverless backend: real chapter text from Project Gutenberg, server-side subscriptions in Postgres, a daily delivery cron, one-click unsubscribe, and Stripe checkout. Every backend feature degrades gracefully when its env var is unset, so a bare deploy still works.
 
 ## Project Structure
 
@@ -14,6 +14,12 @@ src/main.jsx        React bootstrap
 api/send.js         Serverless proxy → Resend (email delivery)
 api/gutenberg.js    Serverless fetcher → Project Gutenberg (primary chapter text)
 api/claude.js       Serverless proxy → Anthropic Claude API (preludes + last-resort text)
+api/subscriptions.js  Server-side subscription records (create/update/delete)
+api/cron.js         Daily scheduled delivery engine (Vercel Cron, 12:00 UTC)
+api/unsubscribe.js  One-click token unsubscribe (works from any device)
+api/checkout.js     Stripe Checkout create + verify (no SDK, no webhooks)
+api/_lib/           Shared server code: db, catalog, gutenberg, email, services
+public/og-image.jpg 1200×630 social preview image
 vite.config.js      Vite multi-page build config
 vercel.json         Vercel routing + function timeout config
 .env.example        Documents all required environment variables
@@ -23,9 +29,7 @@ vercel.json         Vercel routing + function timeout config
 
 Both Resend and Anthropic block direct browser calls — Resend via CORS, Anthropic both via CORS and because the `x-api-key` header must stay server-side. Those two `/api/*` functions forward requests with the key attached at request time.
 
-`api/gutenberg.js` exists for a different reason: it's the **primary text source** for the ~60 books without a per-chapter Wikisource page. Given a Project Gutenberg ID it downloads the real ebook text, strips the license boilerplate, splits it into chapters, and returns the requested one. Responses are CDN-cached for a week (public-domain text doesn't change), so repeat reads never re-hit Gutenberg. It requires **no API key**.
-
-**How the ID is found.** Each Gutenberg-backed book in the catalog carries a hardcoded `gid` (its Project Gutenberg ebook number), which the frontend passes straight to `/api/gutenberg?gid=…`. This is deliberate: the Gutendex catalog API (`gutendex.com`) that the function *can* use to resolve title→ID is **blocked from Vercel's serverless egress**, so live title-based resolution fails for every book. Baking the IDs into the catalog skips that lookup entirely. The Gutendex resolver remains in `api/gutenberg.js` as a best-effort fallback for any book missing a `gid`, but the catalog should always carry one.
+`api/gutenberg.js` exists for a different reason: it's the **primary text source** for the ~60 books without a per-chapter Wikisource page. It resolves title+author → a Project Gutenberg ID via the Gutendex catalog API, downloads the real ebook text, strips the license boilerplate, splits it into chapters, and returns the requested one. Responses are CDN-cached for a week (public-domain text doesn't change), so repeat reads never re-hit Gutenberg. It requires **no API key**.
 
 ## Chapter text: source order
 
@@ -109,19 +113,32 @@ All ~80 books are hardcoded in the `BOOKS` array at the top of `src/App.jsx`. Ea
 }
 ```
 
-If the book is on Wikisource, set `wsPage` to a function returning the page path. If not, set `wsPage: null` and add a `gid` field with the book's Project Gutenberg ebook number (find it at gutenberg.org — it's the number in the ebook URL). The app fetches the real text from Project Gutenberg via `/api/gutenberg?gid=…`. Every work in the catalog must have a public-domain **English** text on Gutenberg; if it doesn't (e.g. only modern translations exist), it can't be included. The optional `gq` field is only a hint for the Gutendex fallback resolver and is not used when a `gid` is present.
+If the book is on Wikisource, set `wsPage` to a function returning the page path. Either way, every book also carries a `gid` — its Project Gutenberg ebook number — so the app (and the delivery cron) can fetch real text straight from Gutenberg. Find a book's `gid` at gutenberg.org (the number in the ebook URL).
+
+**Why `gid` is hardcoded, not looked up:** `api/_lib/gutenberg.js` *can* resolve title→ID via the Gutendex catalog API, but **Gutendex blocks Vercel's serverless egress**, so live resolution fails for every book in production. Passing a baked-in `gid` skips that lookup entirely (direct `gutenberg.org` text fetches work fine from Vercel). The Gutendex resolver remains only as a best-effort fallback for a book missing a `gid`. The optional `gq` field is just a hint for that fallback and is ignored when `gid` is present.
+
+**Copyright note:** every work must have a public-domain **English** text on Gutenberg. *The Adolescent* (Dostoevsky) and *The Knight of Sainte-Hermine* (Dumas) were removed because their only English translations are still under copyright.
 
 **Copyright note:** everything in the catalog must have a public-domain *English text* — a public-domain original is not enough if the only translations are modern. This is why *The Knight of Sainte-Hermine* was removed (its English translation dates from 2008).
 
-## Known limitations (not yet built)
+## Server-side delivery (the cron)
 
-Three things from the original product guide are **not implemented**. They're all flagged as "Future Considerations" in the guide for a reason — each is a meaningful scope in its own right:
+When `DATABASE_URL` is set, every new subscription is mirrored to Postgres and a daily Vercel Cron (`/api/cron`, 12:00 UTC ≈ US morning) sends due chapters — **no browser tab required**. The schema auto-creates on first use; setup is literally pasting a connection string (Neon's free tier works great). The in-browser delivery loop automatically skips server-managed subscriptions to prevent double-sends, and the app pulls the server's progress counters on load so local progress bars stay accurate.
 
-1. **Payments.** The upgrade flow shows "Payment integration coming soon — free during beta." To launch paid, integrate Stripe Checkout with three prices ($5/mo, $40/yr, $3 one-time) and enforce them against the `plan` field on each subscription.
-2. **Server-side scheduler.** The delivery engine currently runs in the user's browser (a `setInterval` in `App.jsx`). Emails only go out while someone has the tab open. For production, move this to a Vercel Cron that queries a real database and hits an internal send endpoint.
-3. **Database.** All subscriptions, inbox items, and streak state live in `localStorage` per browser. A user who subscribes on their phone gets nothing on their laptop. Moving to Supabase or Postgres is a prerequisite for #2.
+Without `DATABASE_URL`, the app runs exactly as before: instant first-chapter emails work, and follow-ups send from the browser while a tab is open.
 
-Everything else in the guide — email delivery, AI preludes, Wikisource fetching, the reader, TTS, the landing page — is wired up and working.
+## Payments (Stripe)
+
+`/api/checkout` creates Stripe Checkout Sessions and verifies them on return — deliberately no SDK and no webhooks. The plan is recorded server-side only after the verify step retrieves the session from Stripe with the secret key and confirms `payment_status`, so the client can never assert "I paid." Set `STRIPE_SECRET_KEY` + the three price ids to go live; until then, paid plans activate free with the "beta" notice, same as before. Webhooks become worth adding when you care about renewal/cancellation lifecycle events.
+
+## Unsubscribe
+
+Every scheduled email carries `/api/unsubscribe?token=…` — a one-click, any-device link (also wired into the `List-Unsubscribe-Post` header Gmail/Yahoo require). Default action pauses deliveries and saves the reader's place; a secondary link removes the subscription entirely.
+
+## Known limitations (remaining)
+
+1. **Inbox/streaks are per-browser.** Subscriptions and delivery now live server-side, but the in-app inbox and reading streaks are still localStorage. Chapters delivered by the cron arrive by email; the in-app chapter list reflects progress, but past cron emails aren't backfilled into the inbox view.
+2. **No subscription lifecycle webhooks.** A canceled Stripe subscription keeps premium until you clear it in the `user_plans` table. Fine at beta scale; add webhooks when it isn't.
 
 ## Wikisource URL patterns
 
@@ -132,4 +149,7 @@ Wikisource regularly moves works to year-stamped page titles (e.g. `Pride_and_Pr
 
 If you add a book and its `wsPage` always returns nothing, check the actual Wikisource title with `redirects=1` enabled before assuming the path is wrong.
 
-## Outsta
+## Outstanding items needing manual setup
+
+- [ ] **`DATABASE_URL` in Vercel** — create a free Postgres at [neon.tech](https://neon.tech) (or Supabase), paste the connection string. This turns on real scheduled delivery. Optionally set `CRON_SECRET` (any long random string) to lock down the cron endpoint.
+- [ ] **Stripe** — 
