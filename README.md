@@ -23,7 +23,9 @@ vercel.json         Vercel routing + function timeout config
 
 Both Resend and Anthropic block direct browser calls — Resend via CORS, Anthropic both via CORS and because the `x-api-key` header must stay server-side. Those two `/api/*` functions forward requests with the key attached at request time.
 
-`api/gutenberg.js` exists for a different reason: it's the **primary text source** for the ~60 books without a per-chapter Wikisource page. It resolves title+author → a Project Gutenberg ID via the Gutendex catalog API, downloads the real ebook text, strips the license boilerplate, splits it into chapters, and returns the requested one. Responses are CDN-cached for a week (public-domain text doesn't change), so repeat reads never re-hit Gutenberg. It requires **no API key**.
+`api/gutenberg.js` exists for a different reason: it's the **primary text source** for the ~60 books without a per-chapter Wikisource page. Given a Project Gutenberg ID it downloads the real ebook text, strips the license boilerplate, splits it into chapters, and returns the requested one. Responses are CDN-cached for a week (public-domain text doesn't change), so repeat reads never re-hit Gutenberg. It requires **no API key**.
+
+**How the ID is found.** Each Gutenberg-backed book in the catalog carries a hardcoded `gid` (its Project Gutenberg ebook number), which the frontend passes straight to `/api/gutenberg?gid=…`. This is deliberate: the Gutendex catalog API (`gutendex.com`) that the function *can* use to resolve title→ID is **blocked from Vercel's serverless egress**, so live title-based resolution fails for every book. Baking the IDs into the catalog skips that lookup entirely. The Gutendex resolver remains in `api/gutenberg.js` as a best-effort fallback for any book missing a `gid`, but the catalog should always carry one.
 
 ## Chapter text: source order
 
@@ -107,7 +109,7 @@ All ~80 books are hardcoded in the `BOOKS` array at the top of `src/App.jsx`. Ea
 }
 ```
 
-If the book is on Wikisource, set `wsPage` to a function returning the page path. If not, set `wsPage: null` and the app fetches the real text from Project Gutenberg via `/api/gutenberg`. If Gutenberg's title for the work differs from yours (translations, alternate titles), add a `gq` field with the search query to use — e.g. Demons carries `gq: "The Possessed Dostoyevsky"`.
+If the book is on Wikisource, set `wsPage` to a function returning the page path. If not, set `wsPage: null` and add a `gid` field with the book's Project Gutenberg ebook number (find it at gutenberg.org — it's the number in the ebook URL). The app fetches the real text from Project Gutenberg via `/api/gutenberg?gid=…`. Every work in the catalog must have a public-domain **English** text on Gutenberg; if it doesn't (e.g. only modern translations exist), it can't be included. The optional `gq` field is only a hint for the Gutendex fallback resolver and is not used when a `gid` is present.
 
 **Copyright note:** everything in the catalog must have a public-domain *English text* — a public-domain original is not enough if the only translations are modern. This is why *The Knight of Sainte-Hermine* was removed (its English translation dates from 2008).
 
@@ -130,9 +132,4 @@ Wikisource regularly moves works to year-stamped page titles (e.g. `Pride_and_Pr
 
 If you add a book and its `wsPage` always returns nothing, check the actual Wikisource title with `redirects=1` enabled before assuming the path is wrong.
 
-## Outstanding items needing manual setup
-
-- [ ] **`ANTHROPIC_API_KEY` in Vercel** — required for AI preludes; also the last-resort text fallback (rarely hit now that Gutenberg is the primary source).
-- [ ] **`og-image.jpg`** — currently no Open Graph image is set. Drop a 1200×630 JPG into the project root and re-add `<meta property="og:image" content="/og-image.jpg">` in `index.html` for nice social-media previews.
-- [ ] **Resend domain verification** — currently using `onboarding@resend.dev`, which only delivers to the address that owns the Resend account. Verify a sending domain in Resend (Settings → Domains) and update `FROM_EMAIL` in Vercel.
-- [ ] **Footer contact email** — currently `cole@whetstoneadvisory.com`. Swap to a brand-aligned address once a domain is set up.
+## Outsta
