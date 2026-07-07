@@ -88,3 +88,15 @@ export async function sendEmailDirect({ to, subject, html, text, unsubscribeUrl 
     return { ok: false, error: err.message };
   }
 }
+
+export async function getDiscussionQuestions(title, chNum, snippet) {
+  const model = process.env.ANTHROPIC_MODEL_PRELUDE || "claude-haiku-4-5";
+  return callClaude({
+    model,
+    max_tokens: 500,
+    messages: [{
+      role: "user",
+      content: `Write 3-4 discussion questions for a book club reading Chapter ${chNum} of "${title}". Mix comprehension with reflection — at least one question should connect the chapter to the reader's own life. Based on this excerpt:\n\n${String(snippet).slice(0, 2500)}\n\nOutput ONLY the questions, one per line, no numbering or bullets.`,
+    }],
+  }, 12000);
+}

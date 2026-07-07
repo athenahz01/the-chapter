@@ -4,16 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Chapter — Classic Literature Delivered to Your Inbox</title>
-  <meta name="description" content="Subscribe to a classic novel and get its chapters delivered to your inbox on your schedule — each one introduced by an AI-written prelude. 80+ books from Dickens, Dostoevsky, Tolstoy, Twain, and more. First 3 chapters free.">
+  <meta name="description" content="Subscribe to a classic novel and read it chapter by chapter, on your schedule — a gentle reminder in your email, the reading in your app. Each chapter opens with a prelude that sets the scene. 80+ books from Dickens, Dostoevsky, Tolstoy, Twain, and more. First 3 chapters free.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='75' font-size='80'%3E%F0%9F%93%96%3C/text%3E%3C/svg%3E">
   <!-- Open Graph -->
   <meta property="og:title" content="The Chapter — Classic Literature, Chapter by Chapter">
-  <meta property="og:description" content="The greatest stories were never meant to be binged. 80+ classics delivered chapter by chapter, on your schedule, with AI-written preludes that set the scene.">
+  <meta property="og:description" content="The greatest stories were never meant to be binged. 80+ classics, chapter by chapter, on your schedule — a reminder in your email, the reading in your app.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://the-chapter-one.vercel.app/">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="The Chapter — Classic Literature, Chapter by Chapter">
   <meta name="twitter:description" content="The greatest stories were never meant to be binged. 80+ classics, delivered chapter by chapter on your schedule.">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#FAF6F0">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <meta property="og:image" content="https://the-chapter-one.vercel.app/og-image.jpg">
   <meta name="twitter:image" content="https://the-chapter-one.vercel.app/og-image.jpg">
 
@@ -560,7 +563,25 @@
       .cta-form { flex-direction: column; }
       .books-grid { grid-template-columns: repeat(2, 1fr); }
     }
-  </style>
+  
+    /* ═══ Flagship reading ═══ */
+    .flagship { background: #1A1612; padding: 64px 24px; }
+    .flagship-inner { max-width: 960px; margin: 0 auto; display: flex; gap: 48px; align-items: center; }
+    .flagship-cover { width: 150px; height: 210px; flex-shrink: 0; background: #0F2A38; border-radius: 6px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+      box-shadow: 0 18px 40px rgba(0,0,0,.5); border: 1px solid rgba(245,239,225,.14); }
+    .flagship-cover span { font-family: 'Playfair Display', serif; font-size: 56px; font-weight: 800; color: #F5EFE1; }
+    .flagship-cover em { font-family: 'DM Sans', sans-serif; font-style: normal; font-size: 10px; letter-spacing: 3px; color: #B8964E; }
+    .flagship-eyebrow { font-family: 'DM Sans', sans-serif; font-size: 12px; letter-spacing: 2.5px; text-transform: uppercase; color: #B8964E; margin-bottom: 12px; }
+    .flagship-body h2 { font-family: 'Playfair Display', serif; font-size: clamp(28px, 4.5vw, 42px); font-weight: 800; color: #FAF6F0; margin-bottom: 14px; line-height: 1.1; }
+    .flagship-blurb { font-family: 'Cormorant Garamond', serif; font-size: 18px; line-height: 1.6; color: rgba(250,246,240,.78); margin-bottom: 18px; max-width: 560px; }
+    .flagship-stats { font-family: 'DM Sans', sans-serif; font-size: 12.5px; color: rgba(250,246,240,.6); margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .flagship-stats #flagship-count { color: #B8964E; font-weight: 600; }
+    .flagship-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+    .flagship .btn-ghost { border-color: rgba(250,246,240,.3); color: #FAF6F0; }
+    @media (max-width: 720px) { .flagship-inner { flex-direction: column; text-align: center; }
+      .flagship-blurb { margin-inline: auto; } .flagship-stats, .flagship-ctas { justify-content: center; } }
+</style>
 </head>
 <body>
 
@@ -581,7 +602,7 @@
   <section class="hero">
     <div class="hero-text">
       <h1 class="fade-up">The greatest stories were never meant to be <em>binged.</em></h1>
-      <p class="subtitle fade-up fade-up-1">Subscribe to a classic book. Get chapters delivered to your inbox on your schedule — each one introduced by an AI-written prelude that sets the scene.</p>
+      <p class="subtitle fade-up fade-up-1">Subscribe to a classic book. Read it chapter by chapter, on your schedule — a reminder lands in your email, the reading happens in your app. Each chapter opens with a prelude that sets the scene.</p>
       <div class="hero-cta fade-up fade-up-2">
         <a href="/app" class="btn-primary">Get Chapter 1 Free →</a>
         <a href="#how-it-works" class="btn-outline">See how it works</a>
@@ -589,7 +610,7 @@
       <div class="hero-meta fade-up fade-up-3">
         <span>📚 80+ classics</span>
         <span>📧 Your schedule</span>
-        <span>✦ AI preludes</span>
+        <span>✦ Preludes set the scene</span>
         <span>👥 Read with friends</span>
       </div>
     </div>
@@ -619,6 +640,29 @@
     </div>
   </section>
 
+  <!-- ═══ FLAGSHIP READING ═══ -->
+  <section class="flagship reveal" id="flagship">
+    <div class="flagship-inner">
+      <div class="flagship-cover" aria-hidden="true"><span>W</span><em>MOBY-DICK</em></div>
+      <div class="flagship-body">
+        <p class="flagship-eyebrow">This Summer's Reading · Begins July 13</p>
+        <h2>The Great Moby-Dick Reading</h2>
+        <p class="flagship-blurb">One chapter a day, five days a week, all summer. Melville's chapters are famously short — most take under ten minutes — and famously strange. Read the whale with us: same chapter, same day, one conversation.</p>
+        <div class="flagship-stats">
+          <span id="flagship-count">Join the readers</span>
+          <span>· 135 chapters · 27 weeks</span>
+          <span>· ~45 min/week</span>
+          <span>· Free, start to finish</span>
+        </div>
+        <div class="flagship-ctas">
+          <a class="btn btn-primary" href="/app?reading=great-mobydick-reading">Join the Reading</a>
+          <a class="btn btn-ghost" href="/app?book=mobydick">Read a sample chapter</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
   <!-- HOW IT WORKS -->
   <section class="section" id="how-it-works">
     <div class="section-header reveal">
@@ -639,8 +683,8 @@
       </div>
       <div class="step reveal">
         <div class="step-num">3</div>
-        <h3>Open your inbox</h3>
-        <p>Beautifully formatted chapters arrive on schedule, each with an AI prelude to immerse you in the scene. Invite friends to read along.</p>
+        <h3>Read in the app</h3>
+        <p>A short reminder lands in your email when a chapter is ready — one tap opens it in your Chapter app, beautifully typeset, with a prelude to immerse you in the scene. No scrolling past work email to find your book. Invite friends to read along.</p>
       </div>
     </div>
   </section>
@@ -648,13 +692,13 @@
   <!-- PRELUDE SHOWCASE -->
   <section class="prelude-section">
     <div class="prelude-inner reveal">
-      <p class="eyebrow">AI-Written Preludes</p>
+      <p class="eyebrow">A Prelude Sets the Scene</p>
       <h2>Every chapter begins with context</h2>
       <div class="prelude-box">
         <p class="book-label">Frankenstein — Chapter 5</p>
         <blockquote>The long months of obsession have narrowed to this single, rain-lashed night. In a cramped laboratory lit by a single guttering candle, the line between genius and madness dissolves — and what rises from the table will haunt its creator far longer than any nightmare could.</blockquote>
       </div>
-      <p class="prelude-caption">Generated by Claude AI · unique for every chapter</p>
+      <p class="prelude-caption">A new prelude for every chapter</p>
     </div>
   </section>
 
@@ -666,7 +710,7 @@
     <div class="section-header reveal">
       <p class="eyebrow">The Books</p>
       <h2>Eighty classics. Eleven masters.</h2>
-      <p>From Dickens to Dostoevsky, Tolstoy to Twain. The greatest novels of the last two centuries — every text in the public domain, faithfully reproduced and chaptered for your inbox.</p>
+      <p>From Dickens to Dostoevsky, Tolstoy to Twain. The greatest novels of the last two centuries — every text in the public domain, faithfully reproduced and served one chapter at a time.</p>
     </div>
 
     <!-- Rotating featured book -->
@@ -790,7 +834,7 @@
           <p class="price-sub">forever</p>
           <ul>
             <li>First 3 chapters of any book</li>
-            <li>AI preludes included</li>
+            <li>Chapter preludes included</li>
             <li>Custom delivery schedule</li>
             <li>Invite friends to read along</li>
           </ul>
@@ -804,7 +848,7 @@
           <p class="price-sub">per month</p>
           <ul>
             <li>Unlimited books &amp; chapters</li>
-            <li>AI preludes for every chapter</li>
+            <li>Preludes for every chapter</li>
             <li>Custom schedule &amp; pacing</li>
             <li>Read with unlimited friends</li>
             <li>Cancel anytime</li>
@@ -847,7 +891,7 @@
   <footer>
     <p class="logo-foot">The Chapter</p>
     <p>Classic literature delivered to your inbox, chapter by chapter.<br>
-    Every text in the public domain. AI preludes by <a href="https://anthropic.com" target="_blank" rel="noopener">Claude</a>.</p>
+    Every text in the public domain. Preludes crafted with <a href="https://anthropic.com" target="_blank" rel="noopener">Claude</a>.</p>
     <p style="margin-top:12px">
       <a href="/app">Open App</a> · 
       <a href="mailto:cole@whetstoneadvisory.com">Contact</a>
@@ -970,6 +1014,15 @@
         window.location.href = `/app?email=${encodeURIComponent(email)}&book=pp`;
       }
     }
-  </script>
+  
+    // Flagship reading: live participant count
+    fetch('/api/readings').then(r=>r.json()).then(d=>{
+      const rd = d && d.ok && d.readings && d.readings.find(x=>x.id==='great-mobydick-reading');
+      if (rd && rd.participants > 0) {
+        const el = document.getElementById('flagship-count');
+        if (el) el.textContent = rd.participants.toLocaleString() + ' reader' + (rd.participants===1?'':'s') + ' and counting';
+      }
+    }).catch(()=>{});
+</script>
 </body>
 </html>

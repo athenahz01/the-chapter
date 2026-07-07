@@ -515,6 +515,13 @@ export const CATALOG = [
     "chapters": 38
   },
   {
+    "id": "mobydick",
+    "gid": 2701,
+    "title": "Moby-Dick",
+    "author": "Herman Melville",
+    "chapters": 135
+  },
+  {
     "id": "frank",
     "gid": 84,
     "title": "Frankenstein",
