@@ -75,7 +75,7 @@ export function buildEmailHTML(book, chapters, { origin, token, readingTitle, pa
   <p style="font-size:13px;color:#8A7E73;margin:14px 0 0">${esc(label)} of ${esc(book.chapters)} &nbsp;·&nbsp; about ${mins} min</p>
   ${preludeBlock}
   <a href="${readUrl}" style="display:inline-block;background:#6B1D2A;color:#FAF6F0;text-decoration:none;padding:14px 34px;border-radius:6px;font-size:15px;margin-top:8px">Read ${esc(label)} →</a>
-  <p style="font-size:12px;color:#B0A79A;margin:16px 0 0">Opens in your Chapter app — no scrolling through email.</p>
+  <p style="font-size:12px;color:#B0A79A;margin:16px 0 0">Opens in your Chapter app. No scrolling through email.</p>
   ${questionsBlock}
 </div>
 <div style="padding:18px 24px;border-top:1px solid #E8E2DA;text-align:center;background:#FAF6F0">
@@ -97,7 +97,7 @@ export function buildEmailText(book, chapters, { origin, token, readingTitle, pa
   let out = readingTitle
     ? `${readingTitle}${participants > 1 ? ` · ${participants} readers` : ""}\n\n`
     : `Your chapter is ready\n\n`;
-  out += `${book.title} — by ${book.author}\n${label} of ${book.chapters} · about ${mins} min\n`;
+  out += `${book.title} by ${book.author}\n${label} of ${book.chapters} · about ${mins} min\n`;
   if (prelude) out += `\nA prelude to set the scene:\n${prelude}\n`;
   if (questions && questions.length) out += `\nTo discuss as you read:\n${questions.map(q => `· ${q}`).join("\n")}\n`;
   out += `\nRead now: ${readUrl}\n\n${"─".repeat(40)}\nUnsubscribe: ${unsubUrl}`;
