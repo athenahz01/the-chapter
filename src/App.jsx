@@ -581,6 +581,14 @@ function buildEmailHTML(book, chapters, token) {
     <p style="font-size:10px;color:#B8964E;text-transform:uppercase;letter-spacing:1.5px;margin:0 0 8px;font-family:Helvetica,sans-serif">A prelude to set the scene</p>
     <p style="font-family:Georgia,serif;font-size:15.5px;line-height:1.7;color:#2C2419;margin:0;font-style:italic">${esc(prelude)}</p>
   </div>` : "";
+  const chapterBody = chapters.map(ch => {
+    const heading = chapters.length > 1
+      ? `<h2 style="font-family:Georgia,serif;font-size:20px;color:#6B1D2A;margin:34px 0 14px;text-align:left">Chapter ${esc(ch.chNum)}</h2>` : "";
+    const paras = String(ch.text || "").split(/\n\n+/).filter(p => p.trim()).map((p, i) =>
+      `<p style="font-family:Georgia,serif;font-size:17px;line-height:1.85;color:#2C2419;margin:0 0 1.1em;text-align:left;${i > 0 ? "text-indent:1.4em" : ""}">${esc(p.trim())}</p>`
+    ).join("");
+    return heading + paras;
+  }).join('<hr style="border:none;border-top:1px solid #E8E2DA;margin:34px 0">');
   return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#FAF6F0;font-family:Helvetica,Arial,sans-serif">
 <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #E8E2DA">
 <div style="padding:22px;border-bottom:1px solid #E8E2DA;text-align:center">
@@ -592,8 +600,11 @@ function buildEmailHTML(book, chapters, token) {
   <p style="font-size:14px;color:#8A7E73;margin:0 0 4px;font-style:italic">by ${esc(book.author)}</p>
   <p style="font-size:13px;color:#8A7E73;margin:14px 0 0">${esc(label)} of ${esc(book.chapters)} &nbsp;·&nbsp; about ${mins} min</p>
   ${preludeBlock}
-  <a href="${readUrl}" style="display:inline-block;background:#6B1D2A;color:#FAF6F0;text-decoration:none;padding:14px 34px;border-radius:6px;font-size:15px;margin-top:8px">Read ${esc(label)} →</a>
-  <p style="font-size:12px;color:#B0A79A;margin:16px 0 0">Opens in your Chapter app. No scrolling through email.</p>
+  <div style="text-align:left;margin:26px 0 0">${chapterBody}</div>
+  <div style="margin:34px 0 0;padding-top:24px;border-top:1px solid #E8E2DA">
+    <a href="${readUrl}" style="display:inline-block;background:#6B1D2A;color:#FAF6F0;text-decoration:none;padding:12px 30px;border-radius:6px;font-size:14px">Open in the app →</a>
+    <p style="font-size:12px;color:#B0A79A;margin:14px 0 0">Track your progress, adjust your schedule, or join the discussion.</p>
+  </div>
 </div>
 <div style="padding:18px 24px;border-top:1px solid #E8E2DA;text-align:center;background:#FAF6F0">
   <p style="font-size:11px;color:#8A7E73;margin:0 0 6px">Sent by The Chapter · Classic literature, chapter by chapter</p>
@@ -613,7 +624,9 @@ function buildEmailText(book, chapters, token) {
   const prelude = chapters[0]?.prelude;
   let out = `Your chapter is ready\n\n${book.title} by ${book.author}\n${label} of ${book.chapters} · about ${mins} min\n`;
   if (prelude) out += `\nA prelude to set the scene:\n${prelude}\n`;
-  out += `\nRead now: ${readUrl}\n\n${"─".repeat(40)}\nUnsubscribe: ${unsubUrl}`;
+  out += `\n${"─".repeat(40)}\n\n`;
+  out += chapters.map(ch => (chapters.length > 1 ? `Chapter ${ch.chNum}\n\n` : "") + String(ch.text || "").trim()).join(`\n\n${"─".repeat(40)}\n\n`);
+  out += `\n\n${"─".repeat(40)}\nContinue in the app: ${readUrl}\nUnsubscribe: ${unsubUrl}`;
   return out;
 }
 
