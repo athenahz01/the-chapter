@@ -24,28 +24,28 @@ export const CATALOG = [
   },
   {
     "id": "oldcuriosity",
-    "gid": 9702,
+    "gid": 700,
     "title": "The Old Curiosity Shop",
     "author": "Charles Dickens",
     "chapters": 73
   },
   {
     "id": "barnaby",
-    "gid": 9732,
+    "gid": 917,
     "title": "Barnaby Rudge",
     "author": "Charles Dickens",
     "chapters": 82
   },
   {
     "id": "chuzzlewit",
-    "gid": 9699,
+    "gid": 968,
     "title": "Martin Chuzzlewit",
     "author": "Charles Dickens",
     "chapters": 54
   },
   {
     "id": "dombey",
-    "gid": 9703,
+    "gid": 821,
     "title": "Dombey and Son",
     "author": "Charles Dickens",
     "chapters": 62
@@ -73,7 +73,7 @@ export const CATALOG = [
   },
   {
     "id": "dorrit",
-    "gid": 9715,
+    "gid": 963,
     "title": "Little Dorrit",
     "author": "Charles Dickens",
     "chapters": 70
@@ -94,7 +94,7 @@ export const CATALOG = [
   },
   {
     "id": "mutual",
-    "gid": 9719,
+    "gid": 883,
     "title": "Our Mutual Friend",
     "author": "Charles Dickens",
     "chapters": 67
@@ -446,7 +446,7 @@ export const CATALOG = [
   },
   {
     "id": "journey",
-    "gid": 19513,
+    "gid": 18857,
     "title": "Journey to the Center of the Earth",
     "author": "Jules Verne",
     "chapters": 45
@@ -481,7 +481,7 @@ export const CATALOG = [
   },
   {
     "id": "lordjim",
-    "gid": 21435,
+    "gid": 5658,
     "title": "Lord Jim",
     "author": "Joseph Conrad",
     "chapters": 45
