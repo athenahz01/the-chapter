@@ -13,10 +13,10 @@
 // Safe to re-run: last_delivery_date guards against double-sends within a
 // day, and each subscription is updated only after its email succeeds.
 
-import { hasDb, query } from "./_lib/db.js";
+import { hasDb, query, getExtras, setExtras } from "./_lib/db.js";
 import { byId } from "./_lib/catalog.js";
 import { getChapter } from "./_lib/gutenberg.js";
-import { getPrelude, getChapterFallback, sendEmailDirect } from "./_lib/services.js";
+import { getPrelude, getChapterFallback, getDiscussionQuestions, sendEmailDirect } from "./_lib/services.js";
 import { buildEmailHTML, buildEmailText, chapterLabel } from "./_lib/email.js";
 
 const FREE_CHAPTERS = 3; // keep in sync with App.jsx
@@ -44,11 +44,13 @@ export default async function handler(req, res) {
   const summary = { checked: 0, sent: 0, skipped: 0, failed: 0, outOfBudget: false, details: [] };
 
   try {
-    // Everything due today, with the account-level plan joined in.
+    // Everything due today, with the account plan and reading joined in.
     const { rows } = await query(
-      `SELECT s.*, COALESCE(u.plan, 'free') AS account_plan
+      `SELECT s.*, COALESCE(u.plan, 'free') AS account_plan,
+              r.is_public AS reading_public, r.title AS reading_title
          FROM subscriptions s
          LEFT JOIN user_plans u ON u.email = s.email
+         LEFT JOIN readings r ON r.id = s.reading_id
         WHERE s.paused = FALSE
           AND $1 = ANY(s.schedule_days)
           AND (s.last_delivery_date IS NULL OR s.last_delivery_date < $2)
@@ -57,6 +59,23 @@ export default async function handler(req, res) {
       [dow, today, BATCH_LIMIT]
     );
 
+    // Hour-of-day preferences only apply when the cron runs hourly
+    // (Vercel Pro: schedule "0 * * * *" + CRON_HOURLY=1). On the default
+    // daily cron every due subscription delivers regardless of preference,
+    // so nobody is silently skipped forever.
+    const hourly = process.env.CRON_HOURLY === "1";
+    const curHour = now.getUTCHours();
+
+    // Participant counts per reading, computed once per run.
+    const participantCache = new Map();
+    const countFor = async (rid) => {
+      if (!participantCache.has(rid)) {
+        const r = await query(`SELECT COUNT(*)::int AS n FROM subscriptions WHERE reading_id=$1 AND paused=FALSE`, [rid]);
+        participantCache.set(rid, r.rows[0]?.n || 0);
+      }
+      return participantCache.get(rid);
+    };
+
     for (const sub of rows) {
       if (Date.now() - started > TIME_BUDGET_MS) { summary.outOfBudget = true; break; }
       summary.checked++;
@@ -64,8 +83,13 @@ export default async function handler(req, res) {
       const book = byId(sub.book_id);
       if (!book) { summary.skipped++; continue; }
 
+      if (hourly && Number.isInteger(sub.delivery_hour) && sub.delivery_hour !== curHour) { continue; }
+
+      // Public communal readings are the acquisition funnel: free all the
+      // way through. Premium and per-book purchases unlock everything else.
       const premium = ["monthly", "annual"].includes(sub.account_plan)
-        || ["alacarte", "paid"].includes(sub.plan);
+        || ["alacarte", "paid"].includes(sub.plan)
+        || (sub.reading_id && sub.reading_public === true);
       const maxCh = premium ? book.chapters : FREE_CHAPTERS;
       if (sub.current_chapter >= Math.min(maxCh, book.chapters)) { summary.skipped++; continue; }
 
@@ -102,13 +126,35 @@ export default async function handler(req, res) {
         ch.prelude = await getPrelude(book.title, ch.chNum, ch.text.slice(0, 1200)).catch(() => null);
       }
 
+      // Reading extras: cohort size + shared discussion questions (cached
+      // per book+chapter so the whole cohort discusses the same ones).
+      const extras = {};
+      if (sub.reading_id) {
+        extras.readingTitle = sub.reading_title;
+        extras.participants = await countFor(sub.reading_id).catch(() => 0);
+        if (sub.want_questions) {
+          try {
+            const hit = await getExtras(book.id, chapters[0].chNum);
+            if (hit?.questions) {
+              extras.questions = hit.questions.split("\n").filter(Boolean);
+            } else {
+              const raw = await getDiscussionQuestions(book.title, chapters[0].chNum, chapters[0].text.slice(0, 2500));
+              if (raw) {
+                extras.questions = raw.split("\n").map(q => q.replace(/^[\d.\-•)\s]+/, "").trim()).filter(q => q.length > 8).slice(0, 5);
+                if (extras.questions.length) await setExtras(book.id, chapters[0].chNum, extras.questions.join("\n"));
+              }
+            }
+          } catch { /* questions are enrichment, never a blocker */ }
+        }
+      }
+
       const recipients = [sub.email, ...(sub.friends || [])].filter(Boolean);
       const unsubscribeUrl = `${origin}/api/unsubscribe?token=${encodeURIComponent(sub.token)}`;
       const result = await sendEmailDirect({
         to: recipients,
-        subject: `📖 ${book.title} — ${chapterLabel(chapters)}`,
-        html: buildEmailHTML(book, chapters, { origin, token: sub.token }),
-        text: buildEmailText(book, chapters, { origin, token: sub.token }),
+        subject: `📖 Your chapter is ready — ${book.title}, ${chapterLabel(chapters)}`,
+        html: buildEmailHTML(book, chapters, { origin, token: sub.token, ...extras }),
+        text: buildEmailText(book, chapters, { origin, token: sub.token, ...extras }),
         unsubscribeUrl,
       });
 

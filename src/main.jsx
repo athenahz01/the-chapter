@@ -56,3 +56,12 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <App />
   </ErrorBoundary>
 );
+
+// ─── PWA: service worker registration ───
+// Makes the app installable (Add to Home Screen on iOS, install prompt on
+// Android/desktop) and caches the shell + chapter text for offline reading.
+if ("serviceWorker" in navigator && !/localhost|127\.0\.0\.1/.test(location.hostname)) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}

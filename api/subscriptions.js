@@ -17,7 +17,7 @@
 // original local-only mode — this layer is strictly additive.
 
 import {
-  hasDb, upsertSubscription, getSubByToken, patchSubByToken, deleteSubByToken,
+  hasDb, upsertSubscription, getSubByToken, patchSubByToken, deleteSubByToken, getReading,
 } from "./_lib/db.js";
 import { byId } from "./_lib/catalog.js";
 
@@ -56,14 +56,23 @@ export default async function handler(req, res) {
       const friends = (body.friends || []).filter(f => EMAIL_RE.test(f)).slice(0, 5);
       const scheduleDays = (body.scheduleDays || []).filter(d => Number.isInteger(d) && d >= 0 && d <= 6);
       if (!scheduleDays.length) return res.status(400).json({ ok: false, error: "No delivery days" });
+      // Joining a reading? Validate it exists and matches the book.
+      let readingId = null;
+      if (body.readingId) {
+        const rd = await getReading(body.readingId);
+        if (rd && rd.book_id === bookId) readingId = rd.id;
+      }
       const row = await upsertSubscription({
         email, bookId, friends, scheduleDays,
         plan: ["free", "alacarte", "paid", "monthly", "annual"].includes(body.plan) ? body.plan : "free",
         chaptersPerDelivery: Math.min(5, Math.max(1, body.chaptersPerDelivery | 0 || 1)),
         currentChapter: Math.max(0, body.currentChapter | 0),
         lastDeliveryDate: body.lastDeliveryDate || null,
+        readingId,
+        wantQuestions: !!body.wantQuestions,
+        deliveryHour: Number.isInteger(body.deliveryHour) && body.deliveryHour >= 0 && body.deliveryHour <= 23 ? body.deliveryHour : null,
       });
-      return res.status(200).json({ ok: true, token: row.token, currentChapter: row.current_chapter });
+      return res.status(200).json({ ok: true, token: row.token, currentChapter: row.current_chapter, readingId });
     }
 
     if (req.method === "GET") {
@@ -78,6 +87,7 @@ export default async function handler(req, res) {
           scheduleDays: sub.schedule_days, chaptersPerDelivery: sub.chapters_per_delivery,
           currentChapter: sub.current_chapter, paused: sub.paused,
           friends: sub.friends, lastDeliveryDate: sub.last_delivery_date,
+          readingId: sub.reading_id || null, wantQuestions: !!sub.want_questions,
         },
       });
     }

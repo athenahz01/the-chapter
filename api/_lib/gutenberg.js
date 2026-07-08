@@ -4,6 +4,8 @@
 
 const GUTENDEX = "https://gutendex.com/books";
 
+import { hasDb, getBookCache, setBookCache } from "./db.js";
+
 // Warm-invocation caches (module scope survives between requests on a warm
 // lambda). bookCache maps gid → { chapters: [...], title }. resolveCache maps
 // normalized query → gid.
@@ -138,44 +140,45 @@ function splitChapters(text) {
 async function loadBook(gid) {
   if (bookCache.has(gid)) return bookCache.get(gid);
 
-  // Gutenberg's canonical stable text URL. Falls back to the format URL from
-  // Gutendex metadata if the canonical path 404s.
+  // Persistent DB cache: once a book is fetched + parsed it lives here, so
+  // cold lambdas and the cron never re-hit gutenberg.org (which is slow for
+  // big books and throttles cloud IPs — the cause of the intermittent 502s).
+  if (hasDb()) {
+    try {
+      const cached = await getBookCache(gid);
+      if (Array.isArray(cached) && cached.length) { rememberWarm(gid, { chapters: cached }); return bookCache.get(gid); }
+    } catch { /* DB miss/erroring is fine — fall through to the network */ }
+  }
+
   const urls = [
     `https://www.gutenberg.org/ebooks/${gid}.txt.utf-8`,
     `https://www.gutenberg.org/cache/epub/${gid}/pg${gid}.txt`,
   ];
   let raw = null;
+  // Two full URLs at 25s each stays under the 60s function ceiling; the real
+  // durability comes from the DB cache above, this just needs to succeed once.
   for (const url of urls) {
     try {
       const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 15000);
+      const timer = setTimeout(() => ctrl.abort(), 25000);
       const r = await fetch(url, { signal: ctrl.signal, redirect: "follow" });
       clearTimeout(timer);
       if (r.ok) { raw = await r.text(); break; }
-    } catch { /* try next */ }
-  }
-  if (!raw) {
-    // Last resort: ask Gutendex where the text lives.
-    const meta = await fetchJson(`${GUTENDEX}/${gid}`);
-    const url = meta && pickTextUrl(meta.formats);
-    if (url) {
-      try {
-        const r = await fetch(url, { redirect: "follow" });
-        if (r.ok) raw = await r.text();
-      } catch { /* give up */ }
-    }
+    } catch { /* try next url */ }
   }
   if (!raw || raw.length < 5000) return null;
 
   const chapters = splitChapters(stripBoilerplate(raw));
   if (chapters.length === 0) return null;
 
-  const book = { chapters };
-  if (bookCache.size >= BOOK_CACHE_MAX) {
-    bookCache.delete(bookCache.keys().next().value); // evict oldest
-  }
+  rememberWarm(gid, { chapters });
+  if (hasDb()) { try { await setBookCache(gid, chapters); } catch { /* non-fatal */ } }
+  return bookCache.get(gid);
+}
+
+function rememberWarm(gid, book) {
+  if (bookCache.size >= BOOK_CACHE_MAX) bookCache.delete(bookCache.keys().next().value);
   bookCache.set(gid, book);
-  return book;
 }
 
 

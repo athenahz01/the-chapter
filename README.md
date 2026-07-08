@@ -2,7 +2,7 @@
 
 Classic literature delivered to your inbox, chapter by chapter.
 
-Vite + React app on Vercel, with a serverless backend: real chapter text from Project Gutenberg, server-side subscriptions in Postgres, a daily delivery cron, one-click unsubscribe, and Stripe checkout. Every backend feature degrades gracefully when its env var is unset, so a bare deploy still works.
+An installable web app (PWA) on Vercel with a serverless backend. **Product shape: the email is a reminder, the app is the reading room** — reminder emails carry the book, chapter number, reading time, and a prelude that sets the scene, with one button that deep-links into the app reader. Backend: real chapter text from Project Gutenberg, server-side subscriptions in Postgres, a daily delivery cron, one-click unsubscribe, and Stripe checkout. Every backend feature degrades gracefully when its env var is unset, so a bare deploy still works.
 
 ## Project Structure
 
@@ -20,6 +20,9 @@ api/unsubscribe.js  One-click token unsubscribe (works from any device)
 api/checkout.js     Stripe Checkout create + verify (no SDK, no webhooks)
 api/_lib/           Shared server code: db, catalog, gutenberg, email, services
 public/og-image.jpg 1200×630 social preview image
+public/manifest.webmanifest  PWA manifest (installable app)
+public/sw.js        Service worker: offline shell + cached chapter text
+public/icons/       App icons (Android, iOS, maskable)
 vite.config.js      Vite multi-page build config
 vercel.json         Vercel routing + function timeout config
 .env.example        Documents all required environment variables
@@ -113,11 +116,11 @@ All ~80 books are hardcoded in the `BOOKS` array at the top of `src/App.jsx`. Ea
 }
 ```
 
-If the book is on Wikisource, set `wsPage` to a function returning the page path. Either way, every book also carries a `gid` — its Project Gutenberg ebook number — so the app (and the delivery cron) can fetch real text straight from Gutenberg. Find a book's `gid` at gutenberg.org (the number in the ebook URL).
+If the book is on Wikisource, set `wsPage` to a function returning the page path. Either way, every book carries a hardcoded `gid` — its Project Gutenberg ebook number — which the reader and the delivery cron pass straight to `/api/gutenberg?gid=…`.
 
-**Why `gid` is hardcoded, not looked up:** `api/_lib/gutenberg.js` *can* resolve title→ID via the Gutendex catalog API, but **Gutendex blocks Vercel's serverless egress**, so live resolution fails for every book in production. Passing a baked-in `gid` skips that lookup entirely (direct `gutenberg.org` text fetches work fine from Vercel). The Gutendex resolver remains only as a best-effort fallback for a book missing a `gid`. The optional `gq` field is just a hint for that fallback and is ignored when `gid` is present.
+**Why `gid` is hardcoded:** the Gutendex catalog API that resolves title→ID is **blocked from Vercel's serverless egress**, so live resolution fails in production. Baking the `gid` in skips that lookup (direct gutenberg.org text fetches work fine from Vercel). The Gutendex resolver stays only as a fallback for a book missing a `gid`; the optional `gq` field is ignored when `gid` is present.
 
-**Copyright note:** every work must have a public-domain **English** text on Gutenberg. *The Adolescent* (Dostoevsky) and *The Knight of Sainte-Hermine* (Dumas) were removed because their only English translations are still under copyright.
+**Copyright:** every work needs a public-domain **English** text on Gutenberg. *The Adolescent* (Dostoevsky) and *The Knight of Sainte-Hermine* (Dumas) are excluded because their only English translations are still under copyright.
 
 **Copyright note:** everything in the catalog must have a public-domain *English text* — a public-domain original is not enough if the only translations are modern. This is why *The Knight of Sainte-Hermine* was removed (its English translation dates from 2008).
 
@@ -130,6 +133,26 @@ Without `DATABASE_URL`, the app runs exactly as before: instant first-chapter em
 ## Payments (Stripe)
 
 `/api/checkout` creates Stripe Checkout Sessions and verifies them on return — deliberately no SDK and no webhooks. The plan is recorded server-side only after the verify step retrieves the session from Stripe with the secret key and confirms `payment_status`, so the client can never assert "I paid." Set `STRIPE_SECRET_KEY` + the three price ids to go live; until then, paid plans activate free with the "beta" notice, same as before. Webhooks become worth adding when you care about renewal/cancellation lifecycle events.
+
+## Communal readings (the V1 spec)
+
+The primary product is "**join our reading of Moby-Dick**," not "subscribe to a book." Implementation:
+
+**Public readings** are seeded cohorts (the flagship — *The Great Moby-Dick Reading*, starting July 13 — auto-seeds on first API call, so a fresh deploy has a live funnel). They're featured on the landing page with a live participant count, and they are **free start to finish**: the trial cap doesn't apply to public-reading subscriptions, because these are the acquisition engine. Joining offers "send my first chapter immediately," discussion questions, and a delivery-time preference.
+
+**Private groups** — anyone can start one from any book page ("Start a group reading"). Creating a group returns an invite link (`/app?join=<code>`); everyone who opens it joins the same cohort: same book, same rhythm, same discussion thread. Families, classrooms, Philosophy Club chapters.
+
+**Discussion** — every reading gets a per-chapter comment thread in the reader, plus AI-generated discussion questions cached per (book, chapter) so the whole cohort discusses the *same* questions. Questions appear in the reminder email (opt-in) and in the app.
+
+**Delivery-time preference** is stored per subscription but only takes effect when the cron runs hourly (Vercel Pro: change the cron schedule to `0 * * * *` and set `CRON_HOURLY=1`). On the default daily cron, everyone delivers at the daily run — nobody is silently skipped.
+
+**Spec deviations, deliberate:** audio = the in-app TTS reader (no server-side narration yet); community threads live in-product rather than Discord/Slack; "N readers opened this chapter" is participant count rather than open-tracking (no pixels); late joiners start at chapter 1 on the cohort's rhythm rather than mid-book.
+
+## The app (PWA)
+
+The Chapter installs to the home screen on iOS (Share → Add to Home Screen), Android, and desktop (an "📲 Install app" button appears in the header when the browser offers it). The service worker caches the app shell and every chapter a reader opens — so a chapter started on WiFi finishes on the subway. Caching is deliberately conservative (network-first for the app itself) so deploys never leave users on a stale version. Bump the `VERSION` string in `public/sw.js` when you want to force old caches cleared.
+
+Reminder emails deep-link to `/app?read=<bookId>.<chapter>&token=…`. On a device that's never seen the subscription, the token is adopted from the server — schedule, progress, and manage actions all work there from then on.
 
 ## Unsubscribe
 
@@ -152,4 +175,7 @@ If you add a book and its `wsPage` always returns nothing, check the actual Wiki
 ## Outstanding items needing manual setup
 
 - [ ] **`DATABASE_URL` in Vercel** — create a free Postgres at [neon.tech](https://neon.tech) (or Supabase), paste the connection string. This turns on real scheduled delivery. Optionally set `CRON_SECRET` (any long random string) to lock down the cron endpoint.
-- [ ] **Stripe** — 
+- [ ] **Stripe** — create the three Prices, set `STRIPE_SECRET_KEY`, `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_ANNUAL`, `STRIPE_PRICE_ALACARTE`. Until then paid plans activate free (beta behavior).
+- [ ] **`ANTHROPIC_API_KEY` in Vercel** — required for AI preludes; also the last-resort text fallback (rarely hit now that Gutenberg is the primary source).
+- [ ] **Resend domain verification** — currently using `onboarding@resend.dev`, which only delivers to the address that owns the Resend account. Verify a sending domain in Resend (Settings → Domains) and update `FROM_EMAIL` in Vercel.
+- [ ] **Footer contact email** — currently `cole@whetstoneadvisory.com`. Swap to a brand-aligned address once a domain is set up.

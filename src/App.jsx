@@ -143,8 +143,7 @@ const BOOKS = [
     cover:{ accent:"#2A2A1A", motif:"U" }, group:"Fyodor Dostoevsky" },
   { id:"gambler", gid:2197, title:"The Gambler", author:"Fyodor Dostoevsky", year:1867, genre:"Novella", chapters:17, wsPage:null,
     cover:{ accent:"#3A2A1A", motif:"G" }, group:"Fyodor Dostoevsky" },
-  // NOTE: "The Adolescent"/"A Raw Youth" removed — no public-domain
-  // English text exists on Project Gutenberg, so we cannot serve it.
+  // NOTE: "The Adolescent"/"A Raw Youth" removed — no public-domain English text on Gutenberg.
   { id:"poorfolk", gid:2302, title:"Poor Folk", author:"Fyodor Dostoevsky", year:1846, genre:"Epistolary", chapters:1, wsPage:null,
     cover:{ accent:"#2A3A3A", motif:"P" }, group:"Fyodor Dostoevsky" },
 
@@ -251,6 +250,8 @@ const BOOKS = [
   { id:"je", gid:1260, title:"Jane Eyre", author:"Charlotte Brontë", year:1847, genre:"Gothic Romance", chapters:38,
     wsPage:(n)=>{const rom=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV","XXV","XXVI","XXVII","XXVIII","XXIX","XXX","XXXI","XXXII","XXXIII","XXXIV","XXXV","XXXVI","XXXVII","XXXVIII"];return`Jane_Eyre_(1st_edition)/Chapter_${rom[n]}`;},
     cover:{ accent:"#2A3A4A", motif:"J" }, group:"Other Classics", featured:true },
+  { id:"mobydick", gid:2701, title:"Moby-Dick", author:"Herman Melville", year:1851, genre:"Adventure", chapters:135, wsPage:null,
+    cover:{ accent:"#0F2A38", motif:"W" }, group:"Other Classics", featured:true },
   { id:"frank", gid:84, title:"Frankenstein", author:"Mary Shelley", year:1818, genre:"Gothic Horror", chapters:24, wsPage:null,
     cover:{ accent:"#1A2A3A", motif:"F" }, group:"Other Classics" },
   { id:"drac", gid:345, title:"Dracula", author:"Bram Stoker", year:1897, genre:"Gothic Horror", chapters:27,
@@ -318,7 +319,7 @@ const gidCache = {}; // bookId → gutenberg id (also persisted to storage)
 async function fetchChapterGutenberg(b, num) {
   try {
     // Reuse a previously-resolved Gutenberg ID if we have one.
-    let gid = gidCache[b.id] || b.gid; // baked catalog id; skips Gutendex resolution (blocked from Vercel egress)
+    let gid = gidCache[b.id] || b.gid; // baked catalog id; skips Gutendex (blocked from Vercel egress)
     if (!gid) {
       try { const r = await window.storage.get(`ch7-gid-${b.id}`); if (r?.value) gid = gidCache[b.id] = r.value; } catch {}
     }
@@ -327,7 +328,7 @@ async function fetchChapterGutenberg(b, num) {
     if (gid) params.set("gid", String(gid));
 
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 30000); // cold fetch of a big book can take a while
+    const timer = setTimeout(() => ctrl.abort(), 55000); // cold fetch of a big book can take a while
     const r = await fetch(`/api/gutenberg?${params}`, { signal: ctrl.signal });
     clearTimeout(timer);
     if (!r.ok) return null;
@@ -359,6 +360,8 @@ async function serverCreateSub(sub) {
         scheduleDays: sub.scheduleDays, chaptersPerDelivery: sub.chaptersPerDelivery,
         friends: sub.friends || [], currentChapter: sub.currentChapter || 0,
         lastDeliveryDate: sub.lastDeliveryDate || null,
+        readingId: sub.readingId || null, wantQuestions: !!sub.wantQuestions,
+        deliveryHour: Number.isInteger(sub.deliveryHour) ? sub.deliveryHour : null,
       }),
     });
     const d = await r.json().catch(() => ({}));
@@ -419,6 +422,60 @@ async function verifyCheckout(sessionId) {
     const r = await fetch(`/api/checkout?session_id=${encodeURIComponent(sessionId)}`);
     return await r.json().catch(() => ({ ok: false }));
   } catch { return { ok: false }; }
+}
+
+// ─── COMMUNAL READINGS (/api/readings, /api/comments, /api/questions) ───
+// The primary product is "join our reading of Moby-Dick", not "subscribe to
+// a book". A reading is a cohort: shared book, shared rhythm, shared
+// discussion. Public readings are free end-to-end (they're the front door);
+// private group readings are invite-code cohorts for families, classes, and
+// clubs. All of it no-ops gracefully when the server has no database.
+async function fetchReadingInfo({ id, code }) {
+  try {
+    const qs = id ? `id=${encodeURIComponent(id)}` : `code=${encodeURIComponent(code)}`;
+    const r = await fetch(`/api/readings?${qs}`);
+    const d = await r.json().catch(() => ({}));
+    return d?.ok ? d.reading : null;
+  } catch { return null; }
+}
+
+async function createGroupReading({ bookId, title, deliveryDays, createdBy }) {
+  try {
+    const r = await fetch("/api/readings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bookId, title, deliveryDays, createdBy }),
+    });
+    return await r.json().catch(() => ({ ok: false }));
+  } catch { return { ok: false }; }
+}
+
+async function fetchQuestions(bookId, ch) {
+  try {
+    const r = await fetch(`/api/questions?book=${encodeURIComponent(bookId)}&ch=${ch}`);
+    const d = await r.json().catch(() => ({}));
+    return d?.ok ? d.questions : null;
+  } catch { return null; }
+}
+
+async function fetchComments(readingId, ch) {
+  try {
+    const r = await fetch(`/api/comments?reading=${encodeURIComponent(readingId)}&ch=${ch}`);
+    const d = await r.json().catch(() => ({}));
+    return d?.ok ? d.comments : null;
+  } catch { return null; }
+}
+
+async function postComment(readingId, ch, name, body) {
+  try {
+    const r = await fetch("/api/comments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reading: readingId, ch, name, body }),
+    });
+    const d = await r.json().catch(() => ({}));
+    return d?.ok ? d.comment : null;
+  } catch { return null; }
 }
 
 // ─── CLAUDE PROXY (server-side, /api/claude) ───────────────────
@@ -491,52 +548,73 @@ function esc(s) {
     .replace(/'/g, "&#39;");
 }
 
-function buildEmailHTML(book, chapters) {
-  const chBlocks = chapters.map(ch => {
-    const pre = ch.prelude ? `<div style="background:#FBF5EC;border-left:3px solid #B8964E;padding:14px 18px;margin:20px 0;border-radius:0 6px 6px 0">
-      <p style="font-size:10px;color:#B8964E;text-transform:uppercase;letter-spacing:1.5px;margin:0 0 8px;font-family:Helvetica,sans-serif">Chapter Prelude</p>
-      <p style="font-family:Georgia,serif;font-size:15px;line-height:1.7;color:#2C2419;margin:0;white-space:pre-wrap">${esc(ch.prelude)}</p>
-    </div>` : "";
-    const paras = ch.text.split(/\n\n+/).filter(p => p.trim()).map((p,i) =>
-      `<p style="font-family:Georgia,serif;font-size:16px;line-height:1.85;color:#2C2419;margin:0 0 1.1em;${i>0?"text-indent:1.5em":""}">${esc(p.trim())}</p>`
-    ).join("\n");
-    // Honesty note when the text came from the AI fallback rather than an
-    // authoritative source — we must not pass off reconstructed text as the
-    // original without saying so.
-    const aiNote = ch.src === "AI reconstruction" ? `<p style="font-size:11px;color:#8A5C24;background:#FBF3E4;border-radius:4px;padding:8px 12px;margin:0 0 14px;font-family:Helvetica,sans-serif">⚠ We couldn't retrieve this chapter from our text archives, so this version was reconstructed by AI and may differ from the original. We're working on sourcing the authentic text.</p>` : "";
-    return `<h2 style="font-family:Georgia,serif;font-size:19px;color:#6B1D2A;margin:28px 0 8px">Chapter ${esc(ch.chNum)} <span style="font-size:13px;color:#8A7E73;font-weight:400">of ${esc(book.chapters)}</span></h2>${aiNote}${pre}${paras}`;
-  }).join('<hr style="border:none;border-top:1px solid #DDD5CA;margin:36px 0">');
-
-  // Origin used in the unsubscribe link. Falls back to the live site so the
-  // email-test path still produces a clickable link.
+// Reminder-style email: the email carries the book, chapter number, reading
+// time, and a prelude that sets the scene — then one button deep-linking into
+// the app reader (/app?read=bookId.ch&token=...). The full text lives in the
+// app, not the inbox: chapters don't get buried under work email, and the
+// small consistent format is kinder to spam filters. The token lets a new
+// device adopt the subscription for progress sync on first open.
+function emailLinks(book, chapters, token) {
   const origin = (typeof window !== "undefined" && window.location?.origin) || "https://the-chapter-one.vercel.app";
+  const t = token ? `&token=${encodeURIComponent(token)}` : "";
+  return {
+    readUrl: `${origin}/app?read=${encodeURIComponent(book.id)}.${chapters[0].chNum}${t}`,
+    manageUrl: `${origin}/app`,
+    unsubUrl: token ? `${origin}/api/unsubscribe?token=${encodeURIComponent(token)}` : `${origin}/app#unsubscribe`,
+  };
+}
+function readMinutes(chapters) {
+  const words = chapters.reduce((n, ch) => n + (ch.text ? ch.text.split(/\s+/).length : 0), 0);
+  return Math.max(1, Math.round(words / 220));
+}
+function chLabelOf(chapters) {
+  return chapters.length === 1 ? `Chapter ${chapters[0].chNum}` : `Chapters ${chapters[0].chNum}–${chapters[chapters.length-1].chNum}`;
+}
+
+function buildEmailHTML(book, chapters, token) {
+  const { readUrl, manageUrl, unsubUrl } = emailLinks(book, chapters, token);
+  const label = chLabelOf(chapters);
+  const mins = readMinutes(chapters);
+  const prelude = chapters[0]?.prelude;
+  const preludeBlock = prelude ? `
+  <div style="background:#FBF5EC;border-left:3px solid #B8964E;padding:16px 20px;margin:24px 0;border-radius:0 6px 6px 0;text-align:left">
+    <p style="font-size:10px;color:#B8964E;text-transform:uppercase;letter-spacing:1.5px;margin:0 0 8px;font-family:Helvetica,sans-serif">A prelude to set the scene</p>
+    <p style="font-family:Georgia,serif;font-size:15.5px;line-height:1.7;color:#2C2419;margin:0;font-style:italic">${esc(prelude)}</p>
+  </div>` : "";
   return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#FAF6F0;font-family:Helvetica,Arial,sans-serif">
-<div style="max-width:600px;margin:0 auto;background:#fff;border:1px solid #E8E2DA">
-<div style="padding:24px;border-bottom:1px solid #E8E2DA;text-align:center">
-  <p style="font-size:11px;letter-spacing:4px;color:#8A7E73;margin:0 0 4px;text-transform:uppercase">T H E &ensp; C H A P T E R</p>
+<div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #E8E2DA">
+<div style="padding:22px;border-bottom:1px solid #E8E2DA;text-align:center">
+  <p style="font-size:11px;letter-spacing:4px;color:#8A7E73;margin:0;text-transform:uppercase">T H E &ensp; C H A P T E R</p>
 </div>
-<div style="padding:24px;border-bottom:1px solid #E8E2DA;text-align:center">
-  <h1 style="font-family:Georgia,serif;font-size:24px;color:#1A1612;margin:0 0 4px">${esc(book.title)}</h1>
-  <p style="font-size:14px;color:#8A7E73;margin:0;font-style:italic">by ${esc(book.author)}</p>
+<div style="padding:34px 28px;text-align:center">
+  <p style="font-size:12px;color:#B8964E;text-transform:uppercase;letter-spacing:2px;margin:0 0 14px">Your chapter is ready</p>
+  <h1 style="font-family:Georgia,serif;font-size:26px;color:#1A1612;margin:0 0 6px">${esc(book.title)}</h1>
+  <p style="font-size:14px;color:#8A7E73;margin:0 0 4px;font-style:italic">by ${esc(book.author)}</p>
+  <p style="font-size:13px;color:#8A7E73;margin:14px 0 0">${esc(label)} of ${esc(book.chapters)} &nbsp;·&nbsp; about ${mins} min</p>
+  ${preludeBlock}
+  <a href="${readUrl}" style="display:inline-block;background:#6B1D2A;color:#FAF6F0;text-decoration:none;padding:14px 34px;border-radius:6px;font-size:15px;margin-top:8px">Read ${esc(label)} →</a>
+  <p style="font-size:12px;color:#B0A79A;margin:16px 0 0">Opens in your Chapter app. No scrolling through email.</p>
 </div>
-<div style="padding:28px 24px">${chBlocks}</div>
-<div style="padding:20px 24px;border-top:1px solid #E8E2DA;text-align:center;background:#FAF6F0">
+<div style="padding:18px 24px;border-top:1px solid #E8E2DA;text-align:center;background:#FAF6F0">
   <p style="font-size:11px;color:#8A7E73;margin:0 0 6px">Sent by The Chapter · Classic literature, chapter by chapter</p>
   <p style="font-size:11px;color:#8A7E73;margin:0">
-    <a href="${origin}/app" style="color:#8A7E73;text-decoration:underline">Manage subscriptions</a>
+    <a href="${manageUrl}" style="color:#8A7E73;text-decoration:underline">Manage subscriptions</a>
     &nbsp;·&nbsp;
-    <a href="${origin}/app#unsubscribe" style="color:#8A7E73;text-decoration:underline">Unsubscribe</a>
+    <a href="${unsubUrl}" style="color:#8A7E73;text-decoration:underline">Unsubscribe</a>
   </p>
 </div>
 </div></body></html>`;
 }
 
-function buildEmailText(book, chapters) {
-  const div = "─".repeat(40);
-  return chapters.map(ch => {
-    const pre = ch.prelude ? `\n✦ Prelude\n${div}\n${ch.prelude}\n${div}\n\n` : "";
-    return `Chapter ${ch.chNum} of ${book.chapters}\n${div}\n${pre}${ch.text}`;
-  }).join(`\n\n${"═".repeat(40)}\n\n`);
+function buildEmailText(book, chapters, token) {
+  const { readUrl, unsubUrl } = emailLinks(book, chapters, token);
+  const label = chLabelOf(chapters);
+  const mins = readMinutes(chapters);
+  const prelude = chapters[0]?.prelude;
+  let out = `Your chapter is ready\n\n${book.title} by ${book.author}\n${label} of ${book.chapters} · about ${mins} min\n`;
+  if (prelude) out += `\nA prelude to set the scene:\n${prelude}\n`;
+  out += `\nRead now: ${readUrl}\n\n${"─".repeat(40)}\nUnsubscribe: ${unsubUrl}`;
+  return out;
 }
 
 // ─── WIKIMEDIA IMAGE URL ───────────────────────────────────────
@@ -712,6 +790,16 @@ export default function App() {
   const [settingsDraft, setSettingsDraft] = useState(null);
   const [userPlan, setUserPlan] = useState("free"); // "free" | "monthly" | "annual"
   const [unsubMode, setUnsubMode] = useState(false); // arrived via email #unsubscribe link
+  const [installEvt, setInstallEvt] = useState(null); // PWA install prompt, when the browser offers one
+  const [grpModal, setGrpModal] = useState(null); // private group reading creation
+
+  useEffect(() => {
+    const onPrompt = (e) => { e.preventDefault(); setInstallEvt(e); };
+    const onInstalled = () => setInstallEvt(null);
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => { window.removeEventListener("beforeinstallprompt", onPrompt); window.removeEventListener("appinstalled", onInstalled); };
+  }, []);
   const tts = useTTS();
   const subsRef = useRef(subs);
   const inboxRef = useRef(inbox);
@@ -785,7 +873,7 @@ export default function App() {
         const d = await verifyCheckout(sessionId);
         if (d?.ok && (d.plan === "monthly" || d.plan === "annual")) {
           svPlan(d.plan);
-          showToast("★ Premium activated — all books, all chapters. Thank you!", "success");
+          showToast("★ Premium activated. All books, all chapters. Thank you!", "success");
         } else if (d?.ok && d.plan === "alacarte" && d.bookId) {
           try {
             // Read subs straight from storage — state may not be hydrated yet.
@@ -796,7 +884,7 @@ export default function App() {
             const s = upd.find(x => x.bookId === d.bookId);
             if (s?.token) serverPatchSub(s.token, { plan: "alacarte" });
           } catch {}
-          showToast("★ Book unlocked — every chapter is yours. Thank you!", "success");
+          showToast("★ Book unlocked. Every chapter is yours. Thank you!", "success");
         } else {
           showToast("We couldn't verify the payment. If you were charged, please contact support.", "error");
         }
@@ -805,7 +893,70 @@ export default function App() {
       return;
     }
     if (checkout === "cancel") {
-      showToast("Checkout canceled — you're still on the free plan.", "info");
+      showToast("Checkout canceled. You're still on the free plan.", "info");
+      window.history.replaceState({}, "", window.location.pathname);
+      return;
+    }
+
+    // ─── Deep link from reminder emails: /app?read=bookId.ch&token=… ───
+    // Opens the reader directly at the delivered chapter. If the token isn't
+    // known locally (new device), adopt the subscription from the server so
+    // progress, schedule, and future manage actions work here too.
+    const readParam = params.get("read");
+    const deepToken = params.get("token");
+    if (readParam) {
+      (async () => {
+        if (deepToken) {
+          try {
+            const r = await window.storage.get("ch7-subs");
+            const cur = r?.value ? JSON.parse(r.value) : [];
+            if (!cur.some(s => s.token === deepToken)) {
+              const remote = await serverGetSub(deepToken);
+              if (remote) {
+                const adopted = {
+                  bookId: remote.bookId, email: remote.email, plan: remote.plan,
+                  scheduleDays: remote.scheduleDays, chaptersPerDelivery: remote.chaptersPerDelivery,
+                  currentChapter: remote.currentChapter, paused: remote.paused,
+                  friends: remote.friends || [], lastDeliveryDate: remote.lastDeliveryDate,
+                  token: deepToken, serverManaged: true, startedAt: new Date().toISOString(),
+                };
+                const merged = [...cur.filter(s => s.bookId !== remote.bookId), adopted];
+                setSubs(merged); subsRef.current = merged;
+                try { await window.storage.set("ch7-subs", JSON.stringify(merged)); } catch {}
+                if (remote.email) svEmail(remote.email);
+              }
+            }
+          } catch {}
+        }
+        const [bid, chStr] = readParam.split(".");
+        const b = BOOKS.find(x => x.id === bid);
+        const ch = parseInt(chStr, 10);
+        if (b && ch >= 1 && ch <= b.chapters) readCh(b, ch);
+      })();
+      window.history.replaceState({}, "", window.location.pathname);
+      return;
+    }
+
+    // ─── Join a communal reading: ?reading=<id> or ?join=<inviteCode> ───
+    const readingParam = params.get("reading");
+    const joinCode = params.get("join");
+    if (readingParam || joinCode) {
+      (async () => {
+        const rd = await fetchReadingInfo(readingParam ? { id: readingParam } : { code: joinCode });
+        if (rd) {
+          const b = BOOKS.find(x => x.id === rd.bookId);
+          if (b) {
+            setBook(b); nav("book");
+            setSubModal({
+              bookId: b.id, email: userEmail || "", days: rd.deliveryDays || [1,2,3,4,5],
+              cpd: 1, friends: "", plan: "free",
+              reading: rd, sendNow: true, wantQ: true, deliveryHour: null,
+            });
+          }
+        } else {
+          showToast(joinCode ? "That invite link isn't valid." : "That reading couldn't be found.", "error");
+        }
+      })();
       window.history.replaceState({}, "", window.location.pathname);
       return;
     }
@@ -869,6 +1020,30 @@ export default function App() {
     saveSubs(subs.map(s=>({...s,paused:true})));
     subs.forEach(s=>{ if(s.token) serverPatchSub(s.token,{paused:true}); });
   };
+
+  // ─── Chapter discussion (communal readings) ───
+  // When the open book belongs to a reading, the reader shows the cohort's
+  // shared discussion questions and a per-chapter comment thread.
+  const [disc, setDisc] = useState(null); // {questions, comments, draft, busy}
+  const [discName, setDiscName] = useState("");
+  useEffect(() => { (async () => {
+    try { const r = await window.storage.get("ch7-name"); if (r?.value) setDiscName(r.value); } catch {}
+  })(); }, []);
+  useEffect(() => {
+    setDisc(null);
+    if (view !== "reader" || !book || !chIdx) return;
+    const sub = subs.find(s => s.bookId === book.id);
+    if (!sub?.readingId) return;
+    let alive = true;
+    (async () => {
+      const [questions, comments] = await Promise.all([
+        sub.wantQuestions !== false ? fetchQuestions(book.id, chIdx) : Promise.resolve(null),
+        fetchComments(sub.readingId, chIdx),
+      ]);
+      if (alive) setDisc({ readingId: sub.readingId, readingTitle: sub.readingTitle, questions, comments: comments || [], draft: "", busy: false });
+    })();
+    return () => { alive = false; };
+  }, [view, book?.id, chIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const genres = useMemo(()=>["All",...new Set(BOOKS.map(b=>b.genre))].sort(),[]);
   const filtered = useMemo(()=>BOOKS.filter(b=>{
@@ -948,10 +1123,10 @@ export default function App() {
 
     const recipients = [sub.email,...(sub.friends||[])].filter(Boolean);
     if(EMAIL_API_URL && recipients.length > 0){
-      const chLabel = chapters.length===1 ? `Chapter ${chapters[0].chNum}` : `Chapters ${chapters[0].chNum}–${chapters[chapters.length-1].chNum}`;
-      const subject = `📖 ${b.title} — ${chLabel}`;
-      const html = buildEmailHTML(b, chapters);
-      const txt = buildEmailText(b, chapters);
+      const chLabel = chLabelOf(chapters);
+      const subject = `📖 Your chapter is ready: ${b.title}, ${chLabel}`;
+      const html = buildEmailHTML(b, chapters, sub.token);
+      const txt = buildEmailText(b, chapters, sub.token);
       const result = await sendEmail(recipients, subject, html, txt, sub.token);
       if(result.ok){
         emailStatus = "sent";
@@ -968,7 +1143,7 @@ export default function App() {
   };
 
   // ═══ SUBSCRIBE ═══
-  const subscribe = async (bookId, email, scheduleDays, cpd, friendsStr, plan) => {
+  const subscribe = async (bookId, email, scheduleDays, cpd, friendsStr, plan, opts={}) => {
     const b = BOOKS.find(x=>x.id===bookId); if(!b) return;
     if(email && email !== userEmail) svEmail(email);
     const friends = friendsStr.split(",").map(e=>e.trim()).filter(e=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
@@ -977,7 +1152,24 @@ export default function App() {
       bookId, email, friends, plan, scheduleDays, chaptersPerDelivery:cpd,
       currentChapter:0, lastDeliveryDate:null,
       startDate: new Date().toISOString(), paused:false,
+      // Communal reading membership (public cohort or private group)
+      readingId: opts.readingId || null, readingTitle: opts.readingTitle || null,
+      inviteUrl: opts.inviteUrl || null, wantQuestions: !!opts.wantQuestions,
+      deliveryHour: Number.isInteger(opts.deliveryHour) ? opts.deliveryHour : null,
     };
+
+    // "Send me my first chapter immediately" — checked by default; readers
+    // who prefer to wait for the ritual start on their first scheduled day.
+    const sendNow = opts.sendNow !== false;
+    if (!sendNow) {
+      const token = await serverCreateSub(newSub);
+      if (token) { newSub.token = token; newSub.serverManaged = true; }
+      const updSubsQ = [...subs.filter(s=>s.bookId!==bookId), newSub];
+      saveSubs(updSubsQ);
+      setSubModal(null);
+      showToast(`You're in! ${b.title} begins on your next delivery day.`, "success");
+      return;
+    }
 
     // Instant delivery of first batch
     setDelivering(true);
@@ -1007,7 +1199,7 @@ export default function App() {
     if(emailStatus === "sent"){
       showToast(`📧 ${lbl} of ${b.title} sent to ${email}! Also available in your inbox below.`, "success");
     } else if (emailStatus === "failed") {
-      showToast(`📖 ${lbl} of ${b.title} is in your inbox below. Email delivery had an issue (${emailError?.slice(0,80) || "unknown"}) — please contact support if it doesn't arrive in 5 min.`, "warning");
+      showToast(`📖 ${lbl} of ${b.title} is in your inbox below. Email delivery had an issue (${emailError?.slice(0,80) || "unknown"}). Please contact support if it doesn't arrive in 5 min.`, "warning");
     } else {
       showToast(`📖 ${lbl} of ${b.title} delivered to your inbox!`, "success");
     }
@@ -1080,7 +1272,7 @@ export default function App() {
     // Last resort: Claude reconstruction — labeled honestly, since a model
     // cannot faithfully reproduce the original text.
     const t = await fetchChapterViaAPI(b.title,b.author,num,`Chapter ${num}`);
-    if(t){ setChText(t); setTextSrc("AI reconstruction — not the original text"); cacheText(k,t); loadPrelude(t); } else setChText("Could not load chapter.");
+    if(t){ setChText(t); setTextSrc("Unverified text · may differ from the original"); cacheText(k,t); loadPrelude(t); } else setChText("Could not load chapter.");
     setLoading(false);
   };
 
@@ -1213,6 +1405,12 @@ export default function App() {
               </button>
             ))}
             {delivering && <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#B8964E"}}>📧</span>}
+            {installEvt&&<button className="b bg" style={{fontSize:11,color:"#6B1D2A",border:"1px solid #E0C89A",borderRadius:14}} title="Install The Chapter as an app" onClick={async ()=>{
+              installEvt.prompt();
+              const { outcome } = await installEvt.userChoice.catch(()=>({outcome:"dismissed"}));
+              if(outcome==="accepted") showToast("Installed! Find The Chapter on your home screen.","success");
+              setInstallEvt(null);
+            }}>📲 Install app</button>}
           </nav>
         </div>
       </header>
@@ -1223,7 +1421,7 @@ export default function App() {
           <section style={{textAlign:"center",padding:"44px 0 36px",maxWidth:560,margin:"0 auto"}}>
             <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,letterSpacing:3,textTransform:"uppercase",color:"#B8964E",marginBottom:12}}>Classic literature, chapter by chapter</p>
             <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:"clamp(24px,3.6vw,36px)",fontWeight:700,lineHeight:1.18,marginBottom:14}}>The greatest stories were never meant to be binged.</h1>
-            <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,lineHeight:1.6,color:"#8A7E73",fontStyle:"italic"}}>Pick a book. Enter your email. Get chapters delivered on your schedule — with AI preludes to set the scene. First {FREE_CHAPTERS} chapters free, then ${PRICE_MONTHLY}/mo for unlimited.</p>
+            <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,lineHeight:1.6,color:"#8A7E73",fontStyle:"italic"}}>Pick a book. Enter your email. Chapters arrive on your schedule: a reminder in your email, the reading right here, each with a prelude to set the scene. First {FREE_CHAPTERS} chapters free, then ${PRICE_MONTHLY}/mo for unlimited.</p>
           </section>
 
           <section style={{marginBottom:36}}>
@@ -1290,11 +1488,14 @@ export default function App() {
                 <span style={{fontSize:28}}>📧</span>
                 <div>
                   <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:600}}>Get this book delivered to you</h3>
-                  <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73"}}>{book.chapters} chapters · First {FREE_CHAPTERS} free, then ${PRICE_MONTHLY}/mo · AI preludes · Read with friends</p>
+                  <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73"}}>{book.chapters} chapters · First {FREE_CHAPTERS} free, then ${PRICE_MONTHLY}/mo · Preludes set the scene · Read with friends</p>
                 </div>
               </div>
               <button className="b bp" style={{width:"100%",justifyContent:"center",padding:"13px 20px",fontSize:14}} onClick={()=>setSubModal({bookId:book.id,email:userEmail,days:[1,3,5],cpd:1,friends:"",plan:"free"})}>
-                Start Reading — Free
+                Start Reading · Free
+              </button>
+              <button className="b bo" style={{width:"100%",justifyContent:"center",padding:"11px 20px",fontSize:13,marginTop:8}} onClick={()=>setGrpModal({bookId:book.id,name:`Reading ${book.title} together`,days:[1,3,5],busy:false,result:null})}>
+                👥 Start a group reading · invite friends, family, or your club
               </button>
               <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A7E73",textAlign:"center",marginTop:6}}>Enter your email, pick your schedule, get Chapter 1 instantly.</p>
             </div>
@@ -1318,7 +1519,7 @@ export default function App() {
               <div className="prg" style={{marginBottom:4}}><div className="prg-f" style={{width:`${Math.round((curSub.currentChapter/book.chapters)*100)}%`}} /></div>
               <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#8A7E73"}}>Ch. {curSub.currentChapter}/{book.chapters} · {Math.round((curSub.currentChapter/book.chapters)*100)}%</p>
               <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
-                {curSub.plan==="free"&&curSub.currentChapter>=FREE_CHAPTERS&&<button className="b bp" onClick={()=>setSubModal({bookId:book.id,email:curSub.email,days:curSub.scheduleDays||[1,3,5],cpd:curSub.chaptersPerDelivery||1,friends:(curSub.friends||[]).join(", "),plan:"monthly",isUpgrade:true})}>Upgrade — ${PRICE_MONTHLY}/mo for unlimited</button>}
+                {curSub.plan==="free"&&curSub.currentChapter>=FREE_CHAPTERS&&<button className="b bp" onClick={()=>setSubModal({bookId:book.id,email:curSub.email,days:curSub.scheduleDays||[1,3,5],cpd:curSub.chaptersPerDelivery||1,friends:(curSub.friends||[]).join(", "),plan:"monthly",isUpgrade:true})}>Upgrade · ${PRICE_MONTHLY}/mo for unlimited</button>}
                 <button className="b bo" onClick={()=>nav("inbox")}>View Inbox</button>
                 <button className="b bo" onClick={()=>readCh(book,Math.min(curSub.currentChapter+1,book.chapters))}>Read in App</button>
               </div>
@@ -1373,7 +1574,7 @@ export default function App() {
                     </div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
-                        <h3 style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:item.read?400:600}}>{b.title} — Ch. {item.ch}</h3>
+                        <h3 style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:item.read?400:600}}>{b.title} · Ch. {item.ch}</h3>
                         <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#8A7E73",flexShrink:0}}>{timeAgo(item.at)}</span>
                       </div>
                       {item.prelude&&<p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:12,color:"#B8964E",fontStyle:"italic",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>✦ {item.prelude.substring(0,80)}…</p>}
@@ -1408,7 +1609,7 @@ export default function App() {
               <div style={{padding:"16px 20px 0"}}><TTSPlayer text={inboxItem.text} /></div>
               {inboxItem.src==="AI reconstruction"&&(
                 <div style={{margin:"16px 20px 0",background:"#FBF3E4",borderRadius:6,padding:"10px 14px"}}>
-                  <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A5C24"}}>⚠ This chapter was reconstructed by AI and may differ from the original text.</p>
+                  <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A5C24"}}>⚠ We couldn't source the verified text for this chapter, so it may differ from the original.</p>
                 </div>
               )}
               {inboxItem.prelude&&(
@@ -1470,6 +1671,36 @@ export default function App() {
                 <p key={i} className={i===0?"drop":""} style={{marginBottom:"1.2em",textIndent:i>0?"1.5em":0}}>{para.trim()}</p>
               ))}
             </article>}
+            {/* ═══ Communal discussion (readings only) ═══ */}
+            {!loading&&chText&&disc&&(
+              <div style={{borderTop:`1px solid ${th.bd}`,marginTop:24,paddingTop:24}}>
+                {disc.readingTitle&&<p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#B8964E",letterSpacing:1.5,textTransform:"uppercase",marginBottom:12}}>{disc.readingTitle} · Chapter {chIdx} discussion</p>}
+                {disc.questions&&disc.questions.length>0&&(
+                  <div style={{background:th.card||"#FBF5EC",borderRadius:8,padding:"14px 18px",marginBottom:18}}>
+                    <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#8A7E73",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>To discuss</p>
+                    {disc.questions.map((q,i)=>(<p key={i} style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15.5,lineHeight:1.6,color:th.fg,marginBottom:6}}>· {q}</p>))}
+                  </div>
+                )}
+                {disc.comments.map(c=>(
+                  <div key={c.id} style={{marginBottom:12,paddingBottom:12,borderBottom:`1px solid ${th.bd}`}}>
+                    <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,fontWeight:600,color:th.fg,marginBottom:3}}>{c.name} <span style={{fontWeight:400,color:th.mt}}>· {timeAgo(c.created_at)}</span></p>
+                    <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,lineHeight:1.55,color:th.fg}}>{c.body}</p>
+                  </div>
+                ))}
+                {disc.comments.length===0&&<p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:th.mt,marginBottom:12}}>No one has commented on this chapter yet. Be the first.</p>}
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  <input className="inp" placeholder="Your name" value={discName} onChange={e=>setDiscName(e.target.value)} style={{maxWidth:220}} maxLength={40}/>
+                  <textarea className="inp" placeholder="Share a thought with your fellow readers…" rows={3} value={disc.draft} onChange={e=>setDisc(d=>({...d,draft:e.target.value}))} maxLength={1000} style={{resize:"vertical",fontFamily:"'DM Sans',sans-serif"}}/>
+                  <button className="b bp" disabled={!discName.trim()||!disc.draft.trim()||disc.busy} style={{alignSelf:"flex-start"}} onClick={async ()=>{
+                    setDisc(d=>({...d,busy:true}));
+                    try { await window.storage.set("ch7-name", discName.trim()); } catch {}
+                    const c = await postComment(disc.readingId, chIdx, discName.trim(), disc.draft.trim());
+                    if(c) setDisc(d=>({...d,comments:[...d.comments,c],draft:"",busy:false}));
+                    else { setDisc(d=>({...d,busy:false})); showToast("Couldn't post, try again.","error"); }
+                  }}>Post</button>
+                </div>
+              </div>
+            )}
             <div style={{display:"flex",justifyContent:"space-between",padding:"20px 0",borderTop:`1px solid ${th.bd}`,marginTop:16}}>
               <button className="b bo" disabled={chIdx<=1} onClick={()=>readCh(book,chIdx-1)} style={{opacity:chIdx<=1?.3:1,borderColor:th.bd,color:th.fg}}>← Prev</button>
               <button className="b bp" disabled={chIdx>=book.chapters} onClick={()=>readCh(book,chIdx+1)} style={{opacity:chIdx>=book.chapters?.3:1}}>Next →</button>
@@ -1488,7 +1719,7 @@ export default function App() {
               <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73",marginBottom:10}}>
                 {subs.length>0
                   ? "Pause or remove individual books below, or stop all email deliveries at once."
-                  : "No subscriptions found in this browser. Subscriptions are stored on the device where you signed up — open this link there to manage them, or reply to any chapter email and we'll remove you manually."}
+                  : "No subscriptions found in this browser. Subscriptions are stored on the device where you signed up. Open this link there to manage them, or reply to any chapter email and we'll remove you manually."}
               </p>
               {subs.length>0&&<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 <button className="b bp" style={{fontSize:12}} onClick={()=>{pauseAll();setUnsubMode(false);showToast("All deliveries paused. Resume any book below whenever you like.","success");}}>⏸ Pause all deliveries</button>
@@ -1532,6 +1763,46 @@ export default function App() {
       )}
 
       {/* ═══ SUBSCRIBE MODAL ═══ */}
+      {/* ═══ CREATE GROUP READING ═══ */}
+      {grpModal&&(()=>{
+        const gb=BOOKS.find(x=>x.id===grpModal.bookId); if(!gb) return null;
+        const DAYS=["Su","Mo","Tu","We","Th","Fr","Sa"];
+        return <div className="mod-bg" onClick={e=>e.target===e.currentTarget&&setGrpModal(null)}><div className="mod" style={{maxWidth:440}}>
+          {!grpModal.result?(<>
+            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:600,marginBottom:4}}>Start a group reading</h2>
+            <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73",marginBottom:16}}>Everyone in your group gets <em>{gb.title}</em> on the same rhythm, with a shared discussion for every chapter. You'll get a private invite link to share.</p>
+            <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A7E73",display:"block",marginBottom:4}}>Group name</label>
+            <input className="inp" value={grpModal.name} onChange={e=>setGrpModal(m=>({...m,name:e.target.value}))} maxLength={80} style={{width:"100%",marginBottom:14}}/>
+            <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A7E73",display:"block",marginBottom:6}}>Chapters arrive on</label>
+            <div style={{display:"flex",gap:6,marginBottom:18}}>
+              {DAYS.map((d,i)=>(
+                <button key={i} onClick={()=>setGrpModal(m=>({...m,days:m.days.includes(i)?m.days.filter(x=>x!==i):[...m.days,i].sort()}))} style={{width:36,height:36,borderRadius:"50%",border:`1.5px solid ${grpModal.days.includes(i)?"#6B1D2A":"#DDD5CA"}`,background:grpModal.days.includes(i)?"#6B1D2A":"#fff",color:grpModal.days.includes(i)?"#FAF6F0":"#1A1612",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>{d}</button>
+              ))}
+            </div>
+            <button className="b bp" style={{width:"100%",justifyContent:"center",padding:"12px"}} disabled={!grpModal.name.trim()||!grpModal.days.length||grpModal.busy} onClick={async ()=>{
+              setGrpModal(m=>({...m,busy:true}));
+              const r = await createGroupReading({ bookId:gb.id, title:grpModal.name.trim(), deliveryDays:grpModal.days, createdBy:userEmail||null });
+              if(r?.ok) setGrpModal(m=>({...m,busy:false,result:r}));
+              else { setGrpModal(m=>({...m,busy:false})); showToast(r?.reason==="no-db"?"Group readings need the server database, coming soon on this deployment.":"Couldn't create the group, try again.","error"); }
+            }}>{grpModal.busy?"Creating…":"Create group & get invite link"}</button>
+            <button className="b bg" style={{textAlign:"center",display:"block",marginTop:6}} onClick={()=>setGrpModal(null)}>Cancel</button>
+          </>):(<>
+            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:600,marginBottom:4}}>Your group is ready 🎉</h2>
+            <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73",marginBottom:14}}>Share this link, anyone who opens it joins <em>{grpModal.result.reading.title}</em>:</p>
+            <div style={{display:"flex",gap:8,marginBottom:16}}>
+              <input className="inp" readOnly value={grpModal.result.inviteUrl} style={{flex:1,fontSize:11}} onFocus={e=>e.target.select()}/>
+              <button className="b bo" onClick={()=>{navigator.clipboard?.writeText(grpModal.result.inviteUrl).then(()=>showToast("Invite link copied!","success")).catch(()=>{});}}>Copy</button>
+            </div>
+            <button className="b bp" style={{width:"100%",justifyContent:"center",padding:"12px"}} onClick={()=>{
+              const rd = { ...grpModal.result.reading, inviteCode: grpModal.result.inviteCode };
+              setGrpModal(null);
+              setSubModal({ bookId:gb.id, email:userEmail||"", days:rd.deliveryDays||[1,3,5], cpd:1, friends:"", plan:"free", reading:rd, sendNow:true, wantQ:true, deliveryHour:null });
+            }}>Join your group now</button>
+            <button className="b bg" style={{textAlign:"center",display:"block",marginTop:6}} onClick={()=>setGrpModal(null)}>Done</button>
+          </>)}
+        </div></div>;
+      })()}
+
       {subModal&&(()=>{
         const wb=BOOKS.find(x=>x.id===subModal.bookId); if(!wb) return null;
         const isUp = subModal.isUpgrade;
@@ -1547,10 +1818,23 @@ export default function App() {
             </div>
           </div>
 
-          {/* Plan toggle (not shown on upgrade or if already premium) */}
-          {!isUp && !isPremium && (
+          {/* Communal reading banner */}
+          {subModal.reading&&(
+            <div style={{background:"#FBF5EC",border:"1px solid #E0C89A",borderRadius:8,padding:"12px 16px",marginBottom:16}}>
+              <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#B8964E",letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>{subModal.reading.isPublic?"You're joining a reading":"You're joining a group"}</p>
+              <p style={{fontFamily:"'Playfair Display',serif",fontSize:15,fontWeight:600,marginBottom:2}}>{subModal.reading.title}</p>
+              <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11.5,color:"#8A7E73"}}>
+                {subModal.reading.participants>0?`${subModal.reading.participants.toLocaleString()} reader${subModal.reading.participants===1?"":"s"} so far · `:""}
+                {subModal.reading.weeks?`${subModal.reading.weeks} weeks · `:""}
+                one chapter per delivery day{subModal.reading.isPublic?" · free, start to finish":""}
+              </p>
+            </div>
+          )}
+
+          {/* Plan toggle (not shown on upgrade, premium, or communal readings) */}
+          {!isUp && !isPremium && !subModal.reading && (
             <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>
-              {[["free",`Free Trial · ${FREE_CHAPTERS} chapters`,""],["monthly",`$${PRICE_MONTHLY}/month · Unlimited`,"All books, all chapters"],["annual",`$${PRICE_ANNUAL}/year · Save 33%`,"All books — 2 months free"],["alacarte",`$${PRICE_ALACARTE} · This book only`,"One-time, all chapters"]].map(([p,l,sub])=>(
+              {[["free",`Free Trial · ${FREE_CHAPTERS} chapters`,""],["monthly",`$${PRICE_MONTHLY}/month · Unlimited`,"All books, all chapters"],["annual",`$${PRICE_ANNUAL}/year · Save 33%`,"All books · 2 months free"],["alacarte",`$${PRICE_ALACARTE} · This book only`,"One-time, all chapters"]].map(([p,l,sub])=>(
                 <button key={p} onClick={()=>setSubModal(m=>({...m,plan:p}))} style={{padding:"10px 14px",border:`1.5px solid ${subModal.plan===p?"#6B1D2A":"#DDD5CA"}`,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:12,background:subModal.plan===p?"#6B1D2A":"#fff",color:subModal.plan===p?"#FAF6F0":"#1A1612",transition:"all .2s",borderRadius:6,textAlign:"left"}}>
                   <span style={{fontWeight:600}}>{l}</span>
                   {sub&&<span style={{display:"block",fontSize:10,opacity:.7,marginTop:1}}>{sub}</span>}
@@ -1559,7 +1843,7 @@ export default function App() {
             </div>
           )}
           {isPremium && !isUp && (
-            <div style={{background:"#EDE7DD",borderRadius:6,padding:10,marginBottom:12,fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#6B1D2A",fontWeight:600,textAlign:"center"}}>★ Premium — all chapters unlocked</div>
+            <div style={{background:"#EDE7DD",borderRadius:6,padding:10,marginBottom:12,fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#6B1D2A",fontWeight:600,textAlign:"center"}}>★ Premium · all chapters unlocked</div>
           )}
 
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
@@ -1601,14 +1885,44 @@ export default function App() {
             {/* Preview */}
             <div style={{background:"#EDE7DD",borderRadius:6,padding:10,fontFamily:"'DM Sans',sans-serif",fontSize:12,textAlign:"center"}}>
               {subModal.days?.length > 0
-                ? <>{subModal.cpd} chapter{subModal.cpd>1?"s":""} on {subModal.days.map(i=>DAYS[i]).join(", ")} — <strong>~{weeksNeeded} week{weeksNeeded!==1&&weeksNeeded!=="∞"?"s":""}</strong>{subModal.plan==="free"?` (first ${FREE_CHAPTERS} free)`:""}</>
+                ? <>{subModal.cpd} chapter{subModal.cpd>1?"s":""} on {subModal.days.map(i=>DAYS[i]).join(", ")} · <strong>~{weeksNeeded} week{weeksNeeded!==1&&weeksNeeded!=="∞"?"s":""}</strong>{subModal.plan==="free"?` (first ${FREE_CHAPTERS} free)`:""}</>
                 : <span style={{color:"#B55"}}>Select at least one day</span>
               }
             </div>
 
             {/* Submit */}
+            {subModal.reading&&(
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
+                <label style={{display:"flex",alignItems:"center",gap:8,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer"}}>
+                  <input type="checkbox" checked={subModal.sendNow!==false} onChange={e=>setSubModal(m=>({...m,sendNow:e.target.checked}))} />
+                  Send me my first chapter immediately
+                </label>
+                <label style={{display:"flex",alignItems:"center",gap:8,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer"}}>
+                  <input type="checkbox" checked={subModal.wantQ!==false} onChange={e=>setSubModal(m=>({...m,wantQ:e.target.checked}))} />
+                  Include discussion questions with each chapter
+                </label>
+                <div style={{display:"flex",alignItems:"center",gap:8,fontFamily:"'DM Sans',sans-serif",fontSize:12}}>
+                  <span style={{color:"#8A7E73"}}>Chapter arrives:</span>
+                  {[["Morning",12],["Midday",17],["Evening",23]].map(([l,h])=>(
+                    <button key={h} onClick={()=>setSubModal(m=>({...m,deliveryHour:m.deliveryHour===h?null:h}))} style={{padding:"4px 10px",borderRadius:12,border:`1.5px solid ${subModal.deliveryHour===h?"#6B1D2A":"#DDD5CA"}`,background:subModal.deliveryHour===h?"#6B1D2A":"#fff",color:subModal.deliveryHour===h?"#FAF6F0":"#1A1612",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>{l}</button>
+                  ))}
+                </div>
+              </div>
+            )}
             <button className="b bp" style={{width:"100%",justifyContent:"center",padding:"13px",fontSize:14}} disabled={!subModal.email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(subModal.email)||!subModal.days?.length||delivering} onClick={async ()=>{
               const friends = subModal.friends.split(",").map(e=>e.trim()).filter(e=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+
+              // Communal reading joins are free — straight through, no plans.
+              if(subModal.reading){
+                await subscribe(subModal.bookId, subModal.email, subModal.days, 1, subModal.friends||"", "free", {
+                  readingId: subModal.reading.id, readingTitle: subModal.reading.title,
+                  inviteUrl: subModal.reading.inviteCode ? `${window.location.origin}/app?join=${subModal.reading.inviteCode}` : null,
+                  wantQuestions: subModal.wantQ!==false, sendNow: subModal.sendNow!==false,
+                  deliveryHour: subModal.deliveryHour,
+                });
+                return;
+              }
+
               const paidPlan = ["monthly","annual","alacarte"].includes(subModal.plan);
 
               // Real payment path — only when Stripe is configured on the
@@ -1648,14 +1962,16 @@ export default function App() {
                 await subscribe(subModal.bookId, subModal.email, subModal.days, subModal.cpd, subModal.friends||"", subModal.plan);
               }
             }}>
-              {delivering ? "Preparing…" : isUp
-                ? (subModal.plan==="monthly"?`★ Subscribe — $${PRICE_MONTHLY}/mo`:subModal.plan==="annual"?`★ Subscribe — $${PRICE_ANNUAL}/yr`:`★ Unlock — $${PRICE_ALACARTE}`)
-                : subModal.plan==="monthly"?`Subscribe — $${PRICE_MONTHLY}/month`
-                : subModal.plan==="annual"?`Subscribe — $${PRICE_ANNUAL}/year`
-                : subModal.plan==="alacarte"?`Unlock This Book — $${PRICE_ALACARTE}`
-                : "Start Reading — Free"}
+              {delivering ? "Preparing…" : subModal.reading
+                ? `Join the Reading · Free`
+                : isUp
+                ? (subModal.plan==="monthly"?`★ Subscribe · $${PRICE_MONTHLY}/mo`:subModal.plan==="annual"?`★ Subscribe · $${PRICE_ANNUAL}/yr`:`★ Unlock · $${PRICE_ALACARTE}`)
+                : subModal.plan==="monthly"?`Subscribe · $${PRICE_MONTHLY}/month`
+                : subModal.plan==="annual"?`Subscribe · $${PRICE_ANNUAL}/year`
+                : subModal.plan==="alacarte"?`Unlock This Book · $${PRICE_ALACARTE}`
+                : "Start Reading · Free"}
             </button>
-            {(subModal.plan==="monthly"||subModal.plan==="annual"||subModal.plan==="alacarte")&&<p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#8A7E73",textAlign:"center"}}>Payment integration coming soon — free during beta.</p>}
+            {(subModal.plan==="monthly"||subModal.plan==="annual"||subModal.plan==="alacarte")&&<p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#8A7E73",textAlign:"center"}}>Payment integration coming soon. Free during beta.</p>}
             <button className="b bg" style={{textAlign:"center",display:"block"}} onClick={()=>setSubModal(null)}>Cancel</button>
           </div>
         </div></div>;
@@ -1669,7 +1985,7 @@ export default function App() {
         const close = () => { setSettingsFor(null); setSettingsDraft(null); };
         const valid = sd.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sd.email) && (sd.scheduleDays||[]).length > 0;
         return <div className="mod-bg" onClick={e=>e.target===e.currentTarget&&close()}><div className="mod">
-          <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:600,marginBottom:12}}>Settings — {b.title}</h2>
+          <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:600,marginBottom:12}}>Settings · {b.title}</h2>
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             <div>
               <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:500,display:"block",marginBottom:4}}>Email</label>
@@ -1713,8 +2029,8 @@ export default function App() {
       {/* Footer */}
       {view!=="reader"&&<footer style={{borderTop:"1px solid #DDD5CA",padding:"20px",textAlign:"center"}}>
         <p style={{fontFamily:"'Playfair Display',serif",fontSize:14,marginBottom:3}}>The Chapter</p>
-        <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10.5,color:"#8A7E73"}}>Classic literature delivered to your inbox · Text via Wikisource & Claude AI</p>
-        {!EMAIL_API_URL&&<p style={{fontFamily:"'DM Sans',sans-serif",fontSize:9,color:"#B8964E",marginTop:4}}>Demo mode — chapters delivered to in-app inbox. Deploy api/send.js for real email delivery.</p>}
+        <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10.5,color:"#8A7E73"}}>Classic literature delivered to your inbox · Text from Wikisource & Project Gutenberg</p>
+        {!EMAIL_API_URL&&<p style={{fontFamily:"'DM Sans',sans-serif",fontSize:9,color:"#B8964E",marginTop:4}}>Demo mode · chapters delivered to in-app inbox. Deploy api/send.js for real email delivery.</p>}
       </footer>}
     </div>
   );
