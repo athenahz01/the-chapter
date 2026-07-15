@@ -646,7 +646,7 @@ function buildEmailHTML(book, chapters, token) {
 <div style="padding:18px 24px;border-top:1px solid #E8E2DA;text-align:center;background:#FAF6F0">
   <p style="font-size:11px;color:#8A7E73;margin:0 0 6px">Sent by The Chapter · Classic literature, chapter by chapter</p>
   <p style="font-size:11px;color:#8A7E73;margin:0">
-    <a href="${manageUrl}" style="color:#8A7E73;text-decoration:underline">Manage subscriptions</a>
+    <a href="${manageUrl}" style="color:#8A7E73;text-decoration:underline">{t("Manage subscriptions")}</a>
     &nbsp;·&nbsp;
     <a href="${unsubUrl}" style="color:#8A7E73;text-decoration:underline">Unsubscribe</a>
   </p>
@@ -664,6 +664,57 @@ function buildEmailText(book, chapters, token) {
   out += `\n${"─".repeat(40)}\n\n`;
   out += chapters.map(ch => (chapters.length > 1 ? `Chapter ${ch.chNum}\n\n` : "") + String(ch.text || "").trim()).join(`\n\n${"─".repeat(40)}\n\n`);
   out += `\n\n${"─".repeat(40)}\nContinue in the app: ${readUrl}\nUnsubscribe: ${unsubUrl}`;
+  return out;
+}
+
+// ─── i18n ──────────────────────────────────────────────────────
+// Keyed by the English string itself, so anything not yet translated simply
+// falls back to English instead of rendering blank. Simplified Chinese.
+const ZH = {
+  // nav / shell
+  "Library":"书库","Inbox":"收件箱","My Books":"我的书","Home":"首页","Install app":"安装应用",
+  "Browse Library":"浏览书库","Featured":"精选","All":"全部","Search books, authors…":"搜索书名、作者…",
+  // book detail
+  "Get this book delivered to you":"把这本书寄给你",
+  "Start Reading · Free":"开始阅读 · 免费","Read in App":"在应用中阅读","View Inbox":"查看收件箱",
+  "Chapters":"章节","Enter your email, pick your schedule, get Chapter 1 instantly.":"填写邮箱，选择节奏，立即收到第 1 章。",
+  "👥 Start a group reading · invite friends, family, or your club":"👥 发起共读小组 · 邀请朋友、家人或读书会",
+  // subscribe modal
+  "Your email":"你的邮箱","Delivery days":"送达日","Chapters per delivery":"每次送达章数",
+  "Read with friends":"和朋友一起读","Send me my first chapter immediately":"立即发送第 1 章给我",
+  "Include discussion questions with each chapter":"每章附带讨论问题",
+  "Chapter arrives:":"送达时间：","Morning":"早上","Midday":"中午","Evening":"晚上",
+  "Cancel":"取消","Done":"完成","Save":"保存","Dismiss":"关闭","Copy":"复制","Post":"发布",
+  "Join the Reading · Free":"加入共读 · 免费","Select at least one day":"请至少选择一天",
+  "YOU'RE JOINING A GROUP":"你正在加入共读小组",
+  // reader
+  "← Prev":"← 上一章","Next →":"下一章 →","✓ Finish the book":"✓ 读完这本书",
+  "Speed:":"语速：","A prelude to set the scene":"导读 · 进入情境","Chapter Prelude":"章节导读",
+  // group reading
+  "Start a group reading":"发起共读小组","Group name":"小组名称","Chapters arrive on":"章节送达日",
+  "Create group & get invite link":"创建小组并获取邀请链接","Your group is ready 🎉":"小组已创建 🎉",
+  "Join your group now":"立即加入你的小组","Share this":"分享",
+  // completion
+  "You finished":"你读完了","⬇ Download share card":"⬇ 下载分享卡片",
+  // empty states
+  "No subscriptions yet.":"还没有订阅。","Subscribe to a book to start receiving chapters.":"订阅一本书，开始接收章节。",
+  "Your inbox is empty":"收件箱是空的",
+  "No one has commented on this chapter yet. Be the first.":"这一章还没有人留言，来做第一个吧。",
+  "Manage subscriptions":"管理订阅","Manage your email deliveries":"管理邮件送达",
+  "Payment integration coming soon. Free during beta.":"支付功能即将上线，测试期间免费。",
+  "Classic literature, chapter by chapter":"经典文学，一章一章地读",
+};
+// Reader language: remembered, and defaults to Chinese for zh-* browsers.
+function detectLang() {
+  try {
+    const saved = localStorage.getItem("ch7-lang");
+    if (saved === "zh" || saved === "en") return saved;
+    return /^zh\b/i.test(navigator.language || "") ? "zh" : "en";
+  } catch { return "en"; }
+}
+function translate(lang, s, params) {
+  let out = (lang === "zh" && ZH[s]) || s;
+  if (params) for (const k in params) out = out.split(`{${k}}`).join(params[k]);
   return out;
 }
 
@@ -865,6 +916,9 @@ export default function App() {
   const [book, setBook] = useState(null);
   const [subs, setSubs] = useState([]);
   const [chIdx, setChIdx] = useState(null);
+  const [lang, setLang] = useState(detectLang);   // "en" | "zh"
+  const t = (s, p) => translate(lang, s, p);
+  const switchLang = (L) => { setLang(L); try { localStorage.setItem("ch7-lang", L); } catch {} };
   const [finished, setFinished] = useState([]);   // completed books
   const [doneModal, setDoneModal] = useState(null); // completion celebration
   const [chText, setChText] = useState("");
@@ -1516,12 +1570,12 @@ export default function App() {
             <a href="/" style={{textDecoration:"none",cursor:"pointer",display:"flex",alignItems:"baseline",gap:8}} title="Back to home">
               <span style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:800,color:"#1A1612"}}>The Chapter</span>
             </a>
-            <a href="/" className="home-link" style={{textDecoration:"none",fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A7E73",padding:"4px 10px",borderRadius:12,border:"1px solid transparent",transition:"all .15s",whiteSpace:"nowrap"}}>← Home</a>
+            <a href="/" className="home-link" style={{textDecoration:"none",fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A7E73",padding:"4px 10px",borderRadius:12,border:"1px solid transparent",transition:"all .15s",whiteSpace:"nowrap"}}>← {t("Home")}</a>
           </div>
           <nav style={{display:"flex",gap:4,alignItems:"center"}}>
             {[["library","Library"],["inbox","Inbox"],["mybooks","My Books"]].map(([v,l])=>(
               <button key={v} className="b bg" style={{fontWeight:view===v?600:400,color:view===v?"#1A1612":"#8A7E73",position:"relative"}} onClick={()=>{nav(v);tts.stop();}}>
-                {l}
+                {t(l)}
                 {v==="inbox"&&unreadCount>0&&<span style={{background:"#6B1D2A",color:"#FAF6F0",borderRadius:8,padding:"1px 6px",fontSize:9,fontWeight:700}}>{unreadCount}</span>}
                 {v==="mybooks"&&subs.length>0&&<span style={{background:"#DDD5CA",color:"#1A1612",borderRadius:8,padding:"1px 6px",fontSize:9,fontWeight:600}}>{subs.length}</span>}
               </button>
@@ -1532,7 +1586,12 @@ export default function App() {
               const { outcome } = await installEvt.userChoice.catch(()=>({outcome:"dismissed"}));
               if(outcome==="accepted") showToast("Installed! Find The Chapter on your home screen.","success");
               setInstallEvt(null);
-            }}>📲 Install app</button>}
+            }}>📲 {t("Install app")}</button>}
+            {/* Language toggle — the Chinese classics deserve a Chinese UI. */}
+            <button className="b bg" title="Language / 语言" style={{fontSize:11,color:"#8A7E73",whiteSpace:"nowrap"}}
+              onClick={()=>switchLang(lang==="zh"?"en":"zh")}>
+              {lang==="zh"?"EN":"中文"}
+            </button>
           </nav>
         </div>
       </header>
@@ -1609,17 +1668,17 @@ export default function App() {
               <div style={{display:"flex",gap:12,alignItems:"center",marginBottom:14}}>
                 <span style={{fontSize:28}}>📧</span>
                 <div>
-                  <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:600}}>Get this book delivered to you</h3>
+                  <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:600}}>{t("Get this book delivered to you")}</h3>
                   <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73"}}>{book.chapters} chapters · First {FREE_CHAPTERS} free, then ${PRICE_MONTHLY}/mo · Preludes set the scene · Read with friends</p>
                 </div>
               </div>
               <button className="b bp" style={{width:"100%",justifyContent:"center",padding:"13px 20px",fontSize:14}} onClick={()=>setSubModal({bookId:book.id,email:userEmail,days:[1],cpd:1,friends:"",plan:"free"})}>
-                Start Reading · Free
+                {t("Start Reading · Free")}
               </button>
               <button className="b bo" style={{width:"100%",justifyContent:"center",padding:"11px 20px",fontSize:13,marginTop:8}} onClick={()=>setGrpModal({bookId:book.id,name:`Reading ${book.title} together`,days:[1],busy:false,result:null})}>
-                👥 Start a group reading · invite friends, family, or your club
+                {t("👥 Start a group reading · invite friends, family, or your club")}
               </button>
-              <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A7E73",textAlign:"center",marginTop:6}}>Enter your email, pick your schedule, get Chapter 1 instantly.</p>
+              <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A7E73",textAlign:"center",marginTop:6}}>{t("Enter your email, pick your schedule, get Chapter 1 instantly.")}</p>
             </div>
           ) : (
             <div style={{background:isPremium||curSub.plan==="alacarte"?"#EDE7DD":"#F5F0E8",borderRadius:10,padding:"16px 20px",marginBottom:16}}>
@@ -1642,8 +1701,8 @@ export default function App() {
               <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#8A7E73"}}>Ch. {curSub.currentChapter}/{book.chapters} · {Math.round((curSub.currentChapter/book.chapters)*100)}%</p>
               <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
                 {curSub.plan==="free"&&curSub.currentChapter>=FREE_CHAPTERS&&<button className="b bp" onClick={()=>setSubModal({bookId:book.id,email:curSub.email,days:curSub.scheduleDays||[1],cpd:curSub.chaptersPerDelivery||1,friends:(curSub.friends||[]).join(", "),plan:"monthly",isUpgrade:true})}>Upgrade · ${PRICE_MONTHLY}/mo for unlimited</button>}
-                <button className="b bo" onClick={()=>nav("inbox")}>View Inbox</button>
-                <button className="b bo" onClick={()=>readCh(book,Math.min(curSub.currentChapter+1,book.chapters))}>Read in App</button>
+                <button className="b bo" onClick={()=>nav("inbox")}>{t("View Inbox")}</button>
+                <button className="b bo" onClick={()=>readCh(book,Math.min(curSub.currentChapter+1,book.chapters))}>{t("Read in App")}</button>
               </div>
             </div>
           )}
@@ -1680,9 +1739,9 @@ export default function App() {
           {inbox.length===0?(
             <div style={{textAlign:"center",padding:"50px 20px"}}>
               <div style={{fontSize:48,marginBottom:12}}>📭</div>
-              <p style={{fontFamily:"'Playfair Display',serif",fontSize:17,marginBottom:5}}>Your inbox is empty</p>
-              <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73",marginBottom:16}}>Subscribe to a book to start receiving chapters.</p>
-              <button className="b bp" onClick={()=>nav("library")}>Browse Library</button>
+              <p style={{fontFamily:"'Playfair Display',serif",fontSize:17,marginBottom:5}}>{t("Your inbox is empty")}</p>
+              <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73",marginBottom:16}}>{t("Subscribe to a book to start receiving chapters.")}</p>
+              <button className="b bp" onClick={()=>nav("library")}>{t("Browse Library")}</button>
             </div>
           ):(
             <div style={{background:"#fff",border:"1px solid #DDD5CA",borderRadius:8,overflow:"hidden"}}>
@@ -1809,7 +1868,7 @@ export default function App() {
                     <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,lineHeight:1.55,color:th.fg}}>{c.body}</p>
                   </div>
                 ))}
-                {disc.comments.length===0&&<p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:th.mt,marginBottom:12}}>No one has commented on this chapter yet. Be the first.</p>}
+                {disc.comments.length===0&&<p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:th.mt,marginBottom:12}}>{t("No one has commented on this chapter yet. Be the first.")}</p>}
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   <input className="inp" placeholder="Your name" value={discName} onChange={e=>setDiscName(e.target.value)} style={{maxWidth:220}} maxLength={40}/>
                   <textarea className="inp" placeholder="Share a thought with your fellow readers…" rows={3} value={disc.draft} onChange={e=>setDisc(d=>({...d,draft:e.target.value}))} maxLength={1000} style={{resize:"vertical",fontFamily:"'DM Sans',sans-serif"}}/>
@@ -1819,15 +1878,15 @@ export default function App() {
                     const c = await postComment(disc.readingId, chIdx, discName.trim(), disc.draft.trim());
                     if(c) setDisc(d=>({...d,comments:[...d.comments,c],draft:"",busy:false}));
                     else { setDisc(d=>({...d,busy:false})); showToast("Couldn't post, try again.","error"); }
-                  }}>Post</button>
+                  }}>{t("Post")}</button>
                 </div>
               </div>
             )}
             <div style={{display:"flex",justifyContent:"space-between",padding:"20px 0",borderTop:`1px solid ${th.bd}`,marginTop:16}}>
-              <button className="b bo" disabled={chIdx<=1} onClick={()=>readCh(book,chIdx-1)} style={{opacity:chIdx<=1?.3:1,borderColor:th.bd,color:th.fg}}>← Prev</button>
+              <button className="b bo" disabled={chIdx<=1} onClick={()=>readCh(book,chIdx-1)} style={{opacity:chIdx<=1?.3:1,borderColor:th.bd,color:th.fg}}>{t("← Prev")}</button>
               {chIdx>=book.chapters
-                ? <button className="b bp" onClick={()=>markFinished(book)}>✓ Finish the book</button>
-                : <button className="b bp" onClick={()=>readCh(book,chIdx+1)}>Next →</button>}
+                ? <button className="b bp" onClick={()=>markFinished(book)}>{t("✓ Finish the book")}</button>
+                : <button className="b bp" onClick={()=>readCh(book,chIdx+1)}>{t("Next →")}</button>}
             </div>
           </div>
         </main>
@@ -1839,7 +1898,7 @@ export default function App() {
           <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:26,fontWeight:700,marginBottom:16}}>My Books</h1>
           {unsubMode&&(
             <div style={{background:"#FBF3E4",border:"1px solid #E0C89A",borderRadius:8,padding:"14px 18px",marginBottom:16}}>
-              <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:600,marginBottom:4}}>Manage your email deliveries</p>
+              <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:600,marginBottom:4}}>{t("Manage your email deliveries")}</p>
               <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73",marginBottom:10}}>
                 {subs.length>0
                   ? "Pause or remove individual books below, or stop all email deliveries at once."
@@ -1847,13 +1906,13 @@ export default function App() {
               </p>
               {subs.length>0&&<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 <button className="b bp" style={{fontSize:12}} onClick={()=>{pauseAll();setUnsubMode(false);showToast("All deliveries paused. Resume any book below whenever you like.","success");}}>⏸ Pause all deliveries</button>
-                <button className="b bg" style={{fontSize:12}} onClick={()=>setUnsubMode(false)}>Dismiss</button>
+                <button className="b bg" style={{fontSize:12}} onClick={()=>setUnsubMode(false)}>{t("Dismiss")}</button>
               </div>}
             </div>
           )}
           {subs.length===0?(
             <div style={{textAlign:"center",padding:"40px 20px"}}>
-              <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73",marginBottom:16}}>No subscriptions yet.</p>
+              <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73",marginBottom:16}}>{t("No subscriptions yet.")}</p>
               <button className="b bp" onClick={()=>nav("library")}>Browse Library</button>
             </div>
           ):subs.map((sub,i)=>{
@@ -1894,7 +1953,7 @@ export default function App() {
         const shareUrl="https://the-chapter-one.vercel.app";
         return <div className="mod-bg" onClick={e=>e.target===e.currentTarget&&setDoneModal(null)}><div className="mod" style={{maxWidth:420,textAlign:"center"}}>
           <p style={{fontSize:40,margin:"4px 0 6px"}}>🎉</p>
-          <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#B8964E",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>You finished</p>
+          <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#B8964E",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>{t("You finished")}</p>
           <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:700,marginBottom:4}}>{b.title}</h2>
           <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontStyle:"italic",color:"#8A7E73",marginBottom:10}}>by {b.author}</p>
           <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73",marginBottom:18}}>
@@ -1905,15 +1964,15 @@ export default function App() {
               if(navigator.share){ await navigator.share({ title:"The Chapter", text:shareText, url:shareUrl }); }
               else { await navigator.clipboard.writeText(`${shareText} ${shareUrl}`); showToast("Copied — paste it anywhere.","success"); }
             }catch{}
-          }}>Share this</button>
+          }}>{t("Share this")}</button>
           <button className="b bo" style={{width:"100%",justifyContent:"center",padding:"11px",marginTop:8}} onClick={()=>{
             try{
               const url=drawShareCard(b,{chapters:b.chapters,days:doneModal.days});
               const a=document.createElement("a"); a.href=url; a.download=`the-chapter-${b.id}.png`; a.click();
               showToast("Card saved — post it anywhere.","success");
             }catch{ showToast("Couldn't make the card here.","error"); }
-          }}>⬇ Download share card</button>
-          <button className="b bg" style={{textAlign:"center",display:"block",margin:"8px auto 0"}} onClick={()=>setDoneModal(null)}>Done</button>
+          }}>{t("⬇ Download share card")}</button>
+          <button className="b bg" style={{textAlign:"center",display:"block",margin:"8px auto 0"}} onClick={()=>setDoneModal(null)}>{t("Done")}</button>
         </div></div>;
       })()}
 
@@ -1923,11 +1982,11 @@ export default function App() {
         const DAYS=["Su","Mo","Tu","We","Th","Fr","Sa"];
         return <div className="mod-bg" onClick={e=>e.target===e.currentTarget&&setGrpModal(null)}><div className="mod" style={{maxWidth:440}}>
           {!grpModal.result?(<>
-            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:600,marginBottom:4}}>Start a group reading</h2>
+            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:600,marginBottom:4}}>{t("Start a group reading")}</h2>
             <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73",marginBottom:16}}>Everyone in your group gets <em>{gb.title}</em> on the same rhythm, with a shared discussion for every chapter. You'll get a private invite link to share.</p>
-            <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A7E73",display:"block",marginBottom:4}}>Group name</label>
+            <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A7E73",display:"block",marginBottom:4}}>{t("Group name")}</label>
             <input className="inp" value={grpModal.name} onChange={e=>setGrpModal(m=>({...m,name:e.target.value}))} maxLength={80} style={{width:"100%",marginBottom:14}}/>
-            <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A7E73",display:"block",marginBottom:6}}>Chapters arrive on</label>
+            <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A7E73",display:"block",marginBottom:6}}>{t("Chapters arrive on")}</label>
             <div style={{display:"flex",gap:6,marginBottom:18}}>
               {DAYS.map((d,i)=>(
                 <button key={i} onClick={()=>setGrpModal(m=>({...m,days:m.days.includes(i)?m.days.filter(x=>x!==i):[...m.days,i].sort()}))} style={{width:36,height:36,borderRadius:"50%",border:`1.5px solid ${grpModal.days.includes(i)?"#6B1D2A":"#DDD5CA"}`,background:grpModal.days.includes(i)?"#6B1D2A":"#fff",color:grpModal.days.includes(i)?"#FAF6F0":"#1A1612",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>{d}</button>
@@ -1938,20 +1997,20 @@ export default function App() {
               const r = await createGroupReading({ bookId:gb.id, title:grpModal.name.trim(), deliveryDays:grpModal.days, createdBy:userEmail||null });
               if(r?.ok) setGrpModal(m=>({...m,busy:false,result:r}));
               else { setGrpModal(m=>({...m,busy:false})); showToast(r?.reason==="no-db"?"Group readings need the server database, coming soon on this deployment.":"Couldn't create the group, try again.","error"); }
-            }}>{grpModal.busy?"Creating…":"Create group & get invite link"}</button>
-            <button className="b bg" style={{textAlign:"center",display:"block",marginTop:6}} onClick={()=>setGrpModal(null)}>Cancel</button>
+            }}>{grpModal.busy?t("Creating…"):t("Create group & get invite link")}</button>
+            <button className="b bg" style={{textAlign:"center",display:"block",marginTop:6}} onClick={()=>setGrpModal(null)}>{t("Cancel")}</button>
           </>):(<>
             <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:600,marginBottom:4}}>Your group is ready 🎉</h2>
             <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73",marginBottom:14}}>Share this link, anyone who opens it joins <em>{grpModal.result.reading.title}</em>:</p>
             <div style={{display:"flex",gap:8,marginBottom:16}}>
               <input className="inp" readOnly value={grpModal.result.inviteUrl} style={{flex:1,fontSize:11}} onFocus={e=>e.target.select()}/>
-              <button className="b bo" onClick={()=>{navigator.clipboard?.writeText(grpModal.result.inviteUrl).then(()=>showToast("Invite link copied!","success")).catch(()=>{});}}>Copy</button>
+              <button className="b bo" onClick={()=>{navigator.clipboard?.writeText(grpModal.result.inviteUrl).then(()=>showToast("Invite link copied!","success")).catch(()=>{});}}>{t("Copy")}</button>
             </div>
             <button className="b bp" style={{width:"100%",justifyContent:"center",padding:"12px"}} onClick={()=>{
               const rd = { ...grpModal.result.reading, inviteCode: grpModal.result.inviteCode };
               setGrpModal(null);
               setSubModal({ bookId:gb.id, email:userEmail||"", days:rd.deliveryDays||[1], cpd:1, friends:"", plan:"free", reading:rd, sendNow:true, wantQ:true, deliveryHour:null });
-            }}>Join your group now</button>
+            }}>{t("Join your group now")}</button>
             <button className="b bg" style={{textAlign:"center",display:"block",marginTop:6}} onClick={()=>setGrpModal(null)}>Done</button>
           </>)}
         </div></div>;
@@ -2003,13 +2062,13 @@ export default function App() {
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             {/* Email */}
             <div>
-              <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:500,display:"block",marginBottom:4}}>Your email</label>
+              <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:500,display:"block",marginBottom:4}}>{t("Your email")}</label>
               <input value={subModal.email} onChange={e=>setSubModal(m=>({...m,email:e.target.value}))} placeholder="you@email.com" type="email" />
             </div>
 
             {/* Schedule: Day picker */}
             <div>
-              <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:500,display:"block",marginBottom:6}}>Delivery days</label>
+              <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:500,display:"block",marginBottom:6}}>{t("Delivery days")}</label>
               <div style={{display:"flex",gap:6,justifyContent:"center"}}>
                 {DAYS.map((d,i)=>(
                   <button key={i} className={`dayB ${subModal.days?.includes(i)?"on":""}`} onClick={()=>setSubModal(m=>{
@@ -2022,7 +2081,7 @@ export default function App() {
 
             {/* Chapters per delivery */}
             <div>
-              <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:500,display:"block",marginBottom:4}}>Chapters per delivery</label>
+              <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:500,display:"block",marginBottom:4}}>{t("Chapters per delivery")}</label>
               <div style={{display:"flex",gap:6}}>
                 {[1,2,3,4,5].map(n=>(
                   <button key={n} onClick={()=>setSubModal(m=>({...m,cpd:n}))} style={{flex:1,padding:"8px 0",borderRadius:6,border:`1.5px solid ${subModal.cpd===n?"#6B1D2A":"#DDD5CA"}`,background:subModal.cpd===n?"#6B1D2A":"#fff",color:subModal.cpd===n?"#FAF6F0":"#8A7E73",fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:subModal.cpd===n?600:400,cursor:"pointer",transition:"all .15s"}}>{n}</button>
@@ -2040,7 +2099,7 @@ export default function App() {
             <div style={{background:"#EDE7DD",borderRadius:6,padding:10,fontFamily:"'DM Sans',sans-serif",fontSize:12,textAlign:"center"}}>
               {subModal.days?.length > 0
                 ? <>{subModal.cpd} chapter{subModal.cpd>1?"s":""} on {subModal.days.map(i=>DAYS[i]).join(", ")} · <strong>~{weeksNeeded} week{weeksNeeded!==1&&weeksNeeded!=="∞"?"s":""}</strong>{subModal.plan==="free"?` (first ${FREE_CHAPTERS} free)`:""}</>
-                : <span style={{color:"#B55"}}>Select at least one day</span>
+                : <span style={{color:"#B55"}}>{t("Select at least one day")}</span>
               }
             </div>
 
@@ -2049,14 +2108,14 @@ export default function App() {
               <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
                 <label style={{display:"flex",alignItems:"center",gap:8,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer"}}>
                   <input type="checkbox" checked={subModal.sendNow!==false} onChange={e=>setSubModal(m=>({...m,sendNow:e.target.checked}))} />
-                  Send me my first chapter immediately
+                  {t("Send me my first chapter immediately")}
                 </label>
                 <label style={{display:"flex",alignItems:"center",gap:8,fontFamily:"'DM Sans',sans-serif",fontSize:12,cursor:"pointer"}}>
                   <input type="checkbox" checked={subModal.wantQ!==false} onChange={e=>setSubModal(m=>({...m,wantQ:e.target.checked}))} />
-                  Include discussion questions with each chapter
+                  {t("Include discussion questions with each chapter")}
                 </label>
                 <div style={{display:"flex",alignItems:"center",gap:8,fontFamily:"'DM Sans',sans-serif",fontSize:12}}>
-                  <span style={{color:"#8A7E73"}}>Chapter arrives:</span>
+                  <span style={{color:"#8A7E73"}}>{t("Chapter arrives:")}</span>
                   {[["Morning",12],["Midday",17],["Evening",23]].map(([l,h])=>(
                     <button key={h} onClick={()=>setSubModal(m=>({...m,deliveryHour:m.deliveryHour===h?null:h}))} style={{padding:"4px 10px",borderRadius:12,border:`1.5px solid ${subModal.deliveryHour===h?"#6B1D2A":"#DDD5CA"}`,background:subModal.deliveryHour===h?"#6B1D2A":"#fff",color:subModal.deliveryHour===h?"#FAF6F0":"#1A1612",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>{l}</button>
                   ))}
@@ -2123,9 +2182,9 @@ export default function App() {
                 : subModal.plan==="monthly"?`Subscribe · $${PRICE_MONTHLY}/month`
                 : subModal.plan==="annual"?`Subscribe · $${PRICE_ANNUAL}/year`
                 : subModal.plan==="alacarte"?`Unlock This Book · $${PRICE_ALACARTE}`
-                : "Start Reading · Free"}
+                : t("Start Reading · Free")}
             </button>
-            {(subModal.plan==="monthly"||subModal.plan==="annual"||subModal.plan==="alacarte")&&<p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#8A7E73",textAlign:"center"}}>Payment integration coming soon. Free during beta.</p>}
+            {(subModal.plan==="monthly"||subModal.plan==="annual"||subModal.plan==="alacarte")&&<p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#8A7E73",textAlign:"center"}}>{t("Payment integration coming soon. Free during beta.")}</p>}
             <button className="b bg" style={{textAlign:"center",display:"block"}} onClick={()=>setSubModal(null)}>Cancel</button>
           </div>
         </div></div>;
@@ -2173,7 +2232,7 @@ export default function App() {
                 if(cur?.token) serverPatchSub(cur.token,{email:sd.email,scheduleDays:sd.scheduleDays,chaptersPerDelivery:sd.chaptersPerDelivery,friends:sd.friends});
                 close();
                 showToast("Settings saved.","success");
-              }}>Save</button>
+              }}>{t("Save")}</button>
               <button className="b bo" onClick={close}>Cancel</button>
             </div>
           </div>
