@@ -580,57 +580,57 @@ export const CATALOG = [
   {
     "id": "sanguo",
     "gid": 23950,
-    "title": "三國演義 · Romance of the Three Kingdoms",
-    "author": "羅貫中 Luo Guanzhong",
+    "title": "三国演义 · Romance of the Three Kingdoms",
+    "author": "罗贯中 Luo Guanzhong",
     "chapters": 120
   },
   {
     "id": "xiyouji",
     "gid": 23962,
-    "title": "西遊記 · Journey to the West",
-    "author": "吳承恩 Wu Cheng'en",
+    "title": "西游记 · Journey to the West",
+    "author": "吴承恩 Wu Cheng'en",
     "chapters": 100
   },
   {
     "id": "shuihu",
     "gid": 23863,
-    "title": "水滸傳 · Water Margin",
+    "title": "水浒传 · Water Margin",
     "author": "施耐庵 Shi Nai'an",
     "chapters": 70
   },
   {
     "id": "hongloumeng",
     "gid": 24264,
-    "title": "紅樓夢 · Dream of the Red Chamber",
+    "title": "红楼梦 · Dream of the Red Chamber",
     "author": "曹雪芹 Cao Xueqin",
     "chapters": 120
   },
   {
     "id": "daodejing",
     "gid": 7337,
-    "title": "道德經 · Tao Te Ching",
+    "title": "道德经 · Tao Te Ching",
     "author": "老子 Laozi",
     "chapters": 81
   },
   {
     "id": "lunyu",
     "gid": 23839,
-    "title": "論語 · The Analects",
+    "title": "论语 · The Analects",
     "author": "孔子 Confucius",
     "chapters": 20
   },
   {
     "id": "sunzi",
     "gid": 23864,
-    "title": "孫子兵法 · The Art of War (original)",
-    "author": "孫子 Sun Tzu",
+    "title": "孙子兵法 · The Art of War (original)",
+    "author": "孙子 Sun Tzu",
     "chapters": 13
   },
   {
     "id": "laocan",
     "gid": 25124,
-    "title": "老殘遊記 · The Travels of Lao Can",
-    "author": "劉鶚 Liu E",
+    "title": "老残游记 · The Travels of Lao Can",
+    "author": "刘鹗 Liu E",
     "chapters": 20
   }
 ];

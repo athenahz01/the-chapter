@@ -128,6 +128,9 @@ async function ensureSchema(p) {
     -- Preludes cached per (book, chapter): one generation for the whole
     -- cohort instead of one Claude call per reader.
     ALTER TABLE chapter_extras ADD COLUMN IF NOT EXISTS prelude TEXT;
+    -- Bumping PARSER_VERSION in gutenberg.js invalidates every cached book,
+    -- so a parser change (e.g. Traditional -> Simplified) can't serve stale text.
+    ALTER TABLE book_cache ADD COLUMN IF NOT EXISTS version INT NOT NULL DEFAULT 1;
   `);
 }
 
@@ -287,16 +290,16 @@ export async function setUserPlan(email, plan, stripeRef) {
 
 // ─── Book text cache (parsed Gutenberg chapters) ───────────────
 
-export async function getBookCache(gid) {
-  const r = await query(`SELECT chapters FROM book_cache WHERE gid = $1`, [gid]);
+export async function getBookCache(gid, version = 1) {
+  const r = await query(`SELECT chapters FROM book_cache WHERE gid = $1 AND version = $2`, [gid, version]);
   return r.rows[0]?.chapters || null; // node-pg returns JSONB already parsed
 }
 
-export async function setBookCache(gid, chapters) {
+export async function setBookCache(gid, chapters, version = 1) {
   await query(
-    `INSERT INTO book_cache (gid, chapters) VALUES ($1, $2)
-     ON CONFLICT (gid) DO UPDATE SET chapters = EXCLUDED.chapters, created_at = NOW()`,
-    [gid, JSON.stringify(chapters)]
+    `INSERT INTO book_cache (gid, chapters, version) VALUES ($1, $2, $3)
+     ON CONFLICT (gid) DO UPDATE SET chapters = EXCLUDED.chapters, version = EXCLUDED.version, created_at = NOW()`,
+    [gid, JSON.stringify(chapters), version]
   );
 }
 

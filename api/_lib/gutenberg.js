@@ -5,6 +5,20 @@
 const GUTENDEX = "https://gutendex.com/books";
 
 import { hasDb, getBookCache, setBookCache } from "./db.js";
+import * as OpenCC from "opencc-js";
+
+// Bump when the parser output changes; invalidates every cached book.
+// v2 = Chinese chapter splitting + Traditional -> Simplified conversion.
+const PARSER_VERSION = 2;
+
+// Gutenberg's Chinese texts are Traditional; we serve Simplified. Generic
+// t->cn (character-level) rather than the tw->cn variant, which also swaps
+// modern Taiwan vocabulary — wrong for classical prose. Built lazily once.
+let _toSimplified = null;
+function toSimplified(s) {
+  if (!_toSimplified) _toSimplified = OpenCC.Converter({ from: "t", to: "cn" });
+  return _toSimplified(s);
+}
 
 // Warm-invocation caches (module scope survives between requests on a warm
 // lambda). bookCache maps gid → { chapters: [...], title }. resolveCache maps
@@ -151,7 +165,7 @@ function splitChineseChapters(text) {
       const prev = best.get(s.num);
       if (!prev || s.body.length > prev.body.length) best.set(s.num, s);
     }
-    const out = [...best.values()].map(s => unwrap(s.body).trim());
+    const out = [...best.values()].map(s => toSimplified(unwrap(s.body).trim()));
     if (out.length >= 3) return out;
   }
   return null;
@@ -194,7 +208,7 @@ async function loadBook(gid) {
   // big books and throttles cloud IPs — the cause of the intermittent 502s).
   if (hasDb()) {
     try {
-      const cached = await getBookCache(gid);
+      const cached = await getBookCache(gid, PARSER_VERSION);
       if (Array.isArray(cached) && cached.length) { rememberWarm(gid, { chapters: cached }); return bookCache.get(gid); }
     } catch { /* DB miss/erroring is fine — fall through to the network */ }
   }
@@ -221,7 +235,7 @@ async function loadBook(gid) {
   if (chapters.length === 0) return null;
 
   rememberWarm(gid, { chapters });
-  if (hasDb()) { try { await setBookCache(gid, chapters); } catch { /* non-fatal */ } }
+  if (hasDb()) { try { await setBookCache(gid, chapters, PARSER_VERSION); } catch { /* non-fatal */ } }
   return bookCache.get(gid);
 }
 

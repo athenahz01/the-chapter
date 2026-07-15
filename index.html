@@ -594,6 +594,7 @@
         <a href="#books">Books</a>
         <a href="#pricing">Pricing</a>
         <a href="/app" class="btn-primary">Start Reading · Free</a>
+        <button id="lang-toggle" class="lang-btn" title="Language / 语言" aria-label="Switch language">中文</button>
       </nav>
     </div>
   </header>
@@ -1024,5 +1025,72 @@
       }
     }).catch(()=>{});
 </script>
+
+  <!-- ═══ LANGUAGE (EN / 简体中文) ═══
+       Swaps text nodes against a dictionary instead of duplicating the page.
+       Keyed by the English string, so anything untranslated stays English.
+       Shares the "ch7-lang" preference with the app, so the choice carries over. -->
+  <script>
+  (function () {
+    var ZH = {
+      "How It Works":"如何运作","Books":"书库","Pricing":"价格",
+      "Start Reading · Free":"开始阅读 · 免费","Get Chapter 1 Free →":"免费获取第 1 章 →",
+      "See how it works":"了解运作方式","📚 80+ classics":"📚 80+ 部经典","📧 Your schedule":"📧 你的节奏",
+      "binged.":"一口气刷完的。",
+      "The greatest stories were never meant to be":"最伟大的故事，从来不是用来",
+      "This Summer's Reading · Begins July 13":"今夏共读 · 7 月 13 日开始",
+      "The Great Moby-Dick Reading":"《白鲸》共读计划",
+      "Join the Reading":"加入共读","Read a sample chapter":"试读一章",
+      "Three steps to your literary ritual":"三步，开始你的阅读仪式",
+      "Pick a book":"选一本书","Choose your pace":"选择节奏","Read in the app":"在应用中阅读",
+      "A Prelude Sets the Scene":"导读，带你入戏","Every chapter begins with context":"每一章都有背景导读",
+      "A new prelude for every chapter":"每章都有全新导读",
+      "The Books":"书库","Eighty classics. Eleven masters.":"八十部经典，十一位大师。",
+      "Reading is better together":"一起读，更有意思",
+      "Simple Pricing":"简单的价格","Start free. Stay for the story.":"免费开始，为故事留下。",
+      "Free Trial":"免费试读","Monthly":"按月","forever":"永久免费",
+      "Chapter preludes included":"包含章节导读","Preludes for every chapter":"每章都有导读",
+      "No account needed. Unsubscribe anytime.":"无需注册，随时退订。",
+      "Classic literature delivered to your inbox, chapter by chapter.":"经典文学，一章一章送到你的邮箱。",
+      "Every text in the public domain. A prelude sets the scene for every chapter.":"所有作品均属公有领域。每一章都有导读带你入戏。",
+      "Open App":"打开应用","Contact":"联系我们","Send Chapter 1 →":"发送第 1 章 →"
+    };
+    var store = [];
+    function collect(node) {
+      if (node.nodeType === 3) {
+        var t = node.nodeValue.trim();
+        if (t && ZH[t]) store.push([node, node.nodeValue]);
+        return;
+      }
+      if (node.nodeType !== 1) return;
+      var tag = node.tagName;
+      if (tag === "SCRIPT" || tag === "STYLE") return;
+      for (var i = 0; i < node.childNodes.length; i++) collect(node.childNodes[i]);
+    }
+    function apply(lang) {
+      for (var i = 0; i < store.length; i++) {
+        var node = store[i][0], orig = store[i][1], key = orig.trim();
+        node.nodeValue = (lang === "zh" && ZH[key]) ? orig.replace(key, ZH[key]) : orig;
+      }
+      document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+      var b = document.getElementById("lang-toggle");
+      if (b) b.textContent = lang === "zh" ? "EN" : "中文";
+      try { localStorage.setItem("ch7-lang", lang); } catch (e) {}
+    }
+    function detect() {
+      try { var s = localStorage.getItem("ch7-lang"); if (s === "zh" || s === "en") return s; } catch (e) {}
+      return /^zh\b/i.test(navigator.language || "") ? "zh" : "en";
+    }
+    function init() {
+      collect(document.body);
+      var lang = detect();
+      apply(lang);
+      var b = document.getElementById("lang-toggle");
+      if (b) b.addEventListener("click", function () { lang = lang === "zh" ? "en" : "zh"; apply(lang); });
+    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+    else init();
+  })();
+  </script>
 </body>
 </html>
