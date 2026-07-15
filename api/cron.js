@@ -91,28 +91,43 @@ export default async function handler(req, res) {
         || ["alacarte", "paid"].includes(sub.plan)
         || (sub.reading_id && sub.reading_public === true);
       const maxCh = premium ? book.chapters : FREE_CHAPTERS;
-      if (sub.current_chapter >= Math.min(maxCh, book.chapters)) { summary.skipped++; continue; }
+      const cap = Math.min(maxCh, book.chapters);
+      if (sub.current_chapter > cap) { summary.skipped++; continue; }
+      const q = book.gq || `${book.title} ${book.author}`;
 
-      // Which chapters go out today?
-      const chNums = [];
-      for (let c = 1; c <= (sub.chapters_per_delivery || 1); c++) {
-        const ch = sub.current_chapter + c;
-        if (ch > book.chapters || ch > maxCh) break;
-        chNums.push(ch);
+      // Walk the (chapter, part) pointer forward. Only chapters long enough to
+      // be split have parts (~22min+); for everything else parts === 1 and this
+      // behaves exactly as it did before. The probe is a cached read, not a
+      // download, so asking "how many parts does this chapter have?" is cheap.
+      const units = [];
+      let curCh = sub.current_chapter || 0;
+      let curPart = sub.current_part || 0;
+      for (let i = 0; i < (sub.chapters_per_delivery || 1); i++) {
+        let ch, part;
+        if (curCh === 0) { ch = 1; part = 1; }
+        else {
+          const probe = await getChapter({ gid: book.gid, q, ch: curCh, part: 1 });
+          const parts = (probe.ok && probe.parts) || 1;
+          if (curPart < parts) { ch = curCh; part = curPart + 1; }   // finish this chapter first
+          else { ch = curCh + 1; part = 1; }                          // move to the next
+        }
+        if (ch > cap || ch > book.chapters) break;
+        units.push({ ch, part });
+        curCh = ch; curPart = part;
       }
-      if (!chNums.length) { summary.skipped++; continue; }
+      if (!units.length) { summary.skipped++; continue; }
 
       // Fetch texts — Gutenberg (real) first, Claude (labeled) as last resort.
       const chapters = [];
-      for (const chNum of chNums) {
+      for (const u of units) {
         if (Date.now() - started > TIME_BUDGET_MS) break;
-        const g = await getChapter({ gid: book.gid, q: book.gq || `${book.title} ${book.author}`, ch: chNum });
+        const g = await getChapter({ gid: book.gid, q, ch: u.ch, part: u.part });
         if (g.ok) {
-          chapters.push({ chNum, text: g.text, src: "Project Gutenberg", prelude: null });
+          chapters.push({ chNum: u.ch, part: g.part || 1, parts: g.parts || 1, text: g.text, src: "Project Gutenberg", prelude: null });
           continue;
         }
-        const t = await getChapterFallback(book.title, book.author, chNum);
-        if (t) chapters.push({ chNum, text: t, src: "AI reconstruction", prelude: null });
+        const t = await getChapterFallback(book.title, book.author, u.ch);
+        if (t) chapters.push({ chNum: u.ch, part: 1, parts: 1, text: t, src: "AI reconstruction", prelude: null });
       }
       if (!chapters.length) {
         summary.failed++;
@@ -171,9 +186,12 @@ export default async function handler(req, res) {
       });
 
       if (result.ok) {
+        // Advance to the last unit actually delivered (chapter AND part), so a
+        // half-delivered long chapter resumes at the right place tomorrow.
+        const last = chapters[chapters.length - 1];
         await query(
-          `UPDATE subscriptions SET current_chapter = $1, last_delivery_date = $2 WHERE id = $3`,
-          [sub.current_chapter + chapters.length, today, sub.id]
+          `UPDATE subscriptions SET current_chapter = $1, current_part = $2, last_delivery_date = $3 WHERE id = $4`,
+          [last.chNum, last.part || 1, today, sub.id]
         );
         summary.sent++;
       } else {

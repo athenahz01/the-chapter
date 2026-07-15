@@ -391,6 +391,7 @@ async function serverCreateSub(sub) {
         email: sub.email, bookId: sub.bookId, plan: sub.plan,
         scheduleDays: sub.scheduleDays, chaptersPerDelivery: sub.chaptersPerDelivery,
         friends: sub.friends || [], currentChapter: sub.currentChapter || 0,
+        currentPart: sub.currentPart || 0,
         lastDeliveryDate: sub.lastDeliveryDate || null,
         readingId: sub.readingId || null, wantQuestions: !!sub.wantQuestions,
         deliveryHour: Number.isInteger(sub.deliveryHour) ? sub.deliveryHour : null,
@@ -1367,6 +1368,9 @@ export default function App() {
     showToast("Preparing your first chapter…","info");
     const { items, emailStatus, emailError } = await deliverChapters(newSub, 1, cpd);
     newSub.currentChapter = items.length;
+    // The instant email carries part 1 of chapter 1, so the cron picks up at
+    // part 2 tomorrow if that chapter was long enough to be split.
+    newSub.currentPart = items.length ? 1 : 0;
     newSub.lastDeliveryDate = new Date().toISOString();
 
     // Re-upsert to record progress. ON CONFLICT keeps the original token, so

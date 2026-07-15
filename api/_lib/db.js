@@ -131,6 +131,9 @@ async function ensureSchema(p) {
     -- Bumping PARSER_VERSION in gutenberg.js invalidates every cached book,
     -- so a parser change (e.g. Traditional -> Simplified) can't serve stale text.
     ALTER TABLE book_cache ADD COLUMN IF NOT EXISTS version INT NOT NULL DEFAULT 1;
+    -- Long chapters go out as "Part 1 of 2" across deliveries, so the progress
+    -- pointer is (current_chapter, current_part) rather than a chapter alone.
+    ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS current_part INT NOT NULL DEFAULT 0;
   `);
 }
 
@@ -146,14 +149,15 @@ export async function upsertSubscription(s) {
   const token = newToken();
   const r = await query(
     `INSERT INTO subscriptions
-       (token, email, friends, book_id, plan, schedule_days, chapters_per_delivery, current_chapter, last_delivery_date, reading_id, want_questions, delivery_hour)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+       (token, email, friends, book_id, plan, schedule_days, chapters_per_delivery, current_chapter, last_delivery_date, reading_id, want_questions, delivery_hour, current_part)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
      ON CONFLICT (email, book_id) DO UPDATE SET
        friends = EXCLUDED.friends,
        plan = EXCLUDED.plan,
        schedule_days = EXCLUDED.schedule_days,
        chapters_per_delivery = EXCLUDED.chapters_per_delivery,
        current_chapter = GREATEST(subscriptions.current_chapter, EXCLUDED.current_chapter),
+       current_part = GREATEST(subscriptions.current_part, EXCLUDED.current_part),
        last_delivery_date = COALESCE(EXCLUDED.last_delivery_date, subscriptions.last_delivery_date),
        reading_id = COALESCE(EXCLUDED.reading_id, subscriptions.reading_id),
        want_questions = EXCLUDED.want_questions,
@@ -173,6 +177,7 @@ export async function upsertSubscription(s) {
       s.readingId || null,
       !!s.wantQuestions,
       Number.isInteger(s.deliveryHour) ? s.deliveryHour : null,
+      Number.isInteger(s.currentPart) ? s.currentPart : 0,
     ]
   );
   return r.rows[0];

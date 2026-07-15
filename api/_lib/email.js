@@ -24,9 +24,15 @@ function readMinutes(chapters) {
 }
 
 export function chapterLabel(chapters) {
-  return chapters.length === 1
-    ? `Chapter ${chapters[0].chNum}`
-    : `Chapters ${chapters[0].chNum}–${chapters[chapters.length - 1].chNum}`;
+  // A long chapter is delivered as "Chapter 7 · Part 1 of 2" so no single
+  // email is a 45-minute wall of Dickens.
+  if (chapters.length === 1) {
+    const c = chapters[0];
+    return c.parts > 1
+      ? `Chapter ${c.chNum} · Part ${c.part} of ${c.parts}`
+      : `Chapter ${c.chNum}`;
+  }
+  return `Chapters ${chapters[0].chNum}–${chapters[chapters.length - 1].chNum}`;
 }
 
 function links(book, chapters, { origin, token }) {
