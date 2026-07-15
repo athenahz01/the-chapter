@@ -8,6 +8,8 @@
 //                      Resend account until you verify a domain.
 //   ALLOWED_ORIGIN   (optional) — if set, only this origin can call the API
 
+import { threadHeaders } from "./_lib/email.js";
+
 const RESEND_URL = "https://api.resend.com/emails";
 
 function setCors(req, res) {
@@ -40,7 +42,7 @@ export default async function handler(req, res) {
   if (typeof body === "string") {
     try { body = JSON.parse(body); } catch { body = {}; }
   }
-  const { to, subject, html, text, unsubscribeUrl } = body || {};
+  const { to, subject, html, text, unsubscribeUrl, thread } = body || {};
 
   if (!to || !subject) {
     return res.status(400).json({ ok: false, error: "Missing required fields: to, subject" });
@@ -74,6 +76,20 @@ export default async function handler(req, res) {
       "List-Unsubscribe": `<${unsubscribeUrl}>`,
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     };
+  }
+  // Threading so each book is ONE conversation in the reader's inbox rather
+  // than a pile of separate emails. The headers are computed here rather than
+  // accepted from the client: the browser doesn't know the sending domain, and
+  // taking raw Message-ID/References from a public endpoint would be a header
+  // injection risk. The client only supplies {bookId, token, chNum}.
+  if (thread && typeof thread === "object") {
+    const th = threadHeaders({
+      bookId: String(thread.bookId || "").replace(/[^a-zA-Z0-9_-]/g, ""),
+      token: String(thread.token || "").replace(/[^a-zA-Z0-9_-]/g, ""),
+      chNum: parseInt(thread.chNum, 10),
+      fromEmail,
+    });
+    if (th) payload.headers = { ...(payload.headers || {}), ...th };
   }
 
   try {

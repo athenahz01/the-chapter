@@ -57,7 +57,7 @@ export async function getChapterFallback(title, author, chNum) {
   }, 25000);
 }
 
-export async function sendEmailDirect({ to, subject, html, text, unsubscribeUrl }) {
+export async function sendEmailDirect({ to, subject, html, text, unsubscribeUrl, threadHeaders }) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return { ok: false, error: "RESEND_API_KEY not configured" };
   const fromEmail = process.env.FROM_EMAIL || "The Chapter <onboarding@resend.dev>";
@@ -73,6 +73,9 @@ export async function sendEmailDirect({ to, subject, html, text, unsubscribeUrl 
       "List-Unsubscribe": `<${unsubscribeUrl}>`,
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     };
+  }
+  if (threadHeaders && typeof threadHeaders === "object") {
+    payload.headers = { ...(payload.headers || {}), ...threadHeaders };
   }
   try {
     const r = await fetch(RESEND_URL, {

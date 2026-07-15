@@ -17,7 +17,7 @@ import { hasDb, query, getExtras, setExtras, setPrelude } from "./_lib/db.js";
 import { byId } from "./_lib/catalog.js";
 import { getChapter } from "./_lib/gutenberg.js";
 import { getPrelude, getChapterFallback, getDiscussionQuestions, sendEmailDirect } from "./_lib/services.js";
-import { buildEmailHTML, buildEmailText, chapterLabel } from "./_lib/email.js";
+import { buildEmailHTML, buildEmailText, chapterLabel, threadHeaders } from "./_lib/email.js";
 
 const FREE_CHAPTERS = 3; // keep in sync with App.jsx
 const TIME_BUDGET_MS = 50_000; // stay under the 60s function ceiling
@@ -163,6 +163,11 @@ export default async function handler(req, res) {
         html: buildEmailHTML(book, chapters, { origin, token: sub.token, ...extras }),
         text: buildEmailText(book, chapters, { origin, token: sub.token, ...extras }),
         unsubscribeUrl,
+        // Reply into the same thread as this reader's previous chapters.
+        threadHeaders: threadHeaders({
+          bookId: book.id, token: sub.token, chNum: chapters[0].chNum,
+          fromEmail: process.env.FROM_EMAIL,
+        }),
       });
 
       if (result.ok) {

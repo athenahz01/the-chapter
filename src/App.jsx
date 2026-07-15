@@ -545,7 +545,7 @@ async function getAIPrelude(text, title, chNum) {
 }
 
 // ─── SEND EMAIL VIA SERVER PROXY ────────────────────────────────
-async function sendEmail(to, subject, html, text, token) {
+async function sendEmail(to, subject, html, text, token, thread) {
   if (!EMAIL_API_URL) return { ok: false, error: "Email not configured" };
   const recipients = Array.isArray(to) ? to : [to];
   try {
@@ -563,6 +563,9 @@ async function sendEmail(to, subject, html, text, token) {
         // Surfaced as List-Unsubscribe / List-Unsubscribe-Post headers by the
         // serverless function. Required by Gmail/Yahoo bulk-sender rules.
         unsubscribeUrl,
+        // {bookId, token, chNum} — the server turns this into Message-ID /
+        // In-Reply-To / References so every chapter lands in one thread.
+        thread,
       }),
     });
     if (r.ok) return { ok: true, ...(await r.json()) };
@@ -662,6 +665,56 @@ function buildEmailText(book, chapters, token) {
   out += chapters.map(ch => (chapters.length > 1 ? `Chapter ${ch.chNum}\n\n` : "") + String(ch.text || "").trim()).join(`\n\n${"─".repeat(40)}\n\n`);
   out += `\n\n${"─".repeat(40)}\nContinue in the app: ${readUrl}\nUnsubscribe: ${unsubUrl}`;
   return out;
+}
+
+// ─── COMPLETION SHARE CARD ─────────────────────────────────────
+// Nobody shares mid-book; everybody wants credit for finishing Tolstoy.
+// Drawn to a canvas so readers get a real image to post, not a screenshot.
+function drawShareCard(book, { chapters, days }) {
+  const S = 1080;
+  const c = document.createElement("canvas");
+  c.width = S; c.height = S;
+  const x = c.getContext("2d");
+  x.fillStyle = "#FAF6F0"; x.fillRect(0, 0, S, S);
+  x.strokeStyle = "#DDD5CA"; x.lineWidth = 3; x.strokeRect(46, 46, S - 92, S - 92);
+  x.textAlign = "center";
+
+  x.fillStyle = "#8A7E73"; x.font = "500 24px Helvetica, Arial, sans-serif";
+  x.fillText("T H E   C H A P T E R", S / 2, 132);
+
+  x.fillStyle = "#B8964E"; x.font = "600 28px Helvetica, Arial, sans-serif";
+  x.fillText("I JUST FINISHED", S / 2, 292);
+
+  // Title: wrap, then shrink until it fits the plate.
+  const title = String(book.title || "");
+  let size = 88, lines = [];
+  const layout = () => {
+    x.font = `700 ${size}px Georgia, "Songti SC", serif`;
+    lines = []; let line = "";
+    for (const w of title.split(/\s+/)) {
+      const t = line ? line + " " + w : w;
+      if (x.measureText(t).width > S - 220 && line) { lines.push(line); line = w; } else line = t;
+    }
+    if (line) lines.push(line);
+  };
+  layout();
+  while (lines.length * (size + 14) > 340 && size > 40) { size -= 6; layout(); }
+  let y = 300 + size + 24;
+  x.fillStyle = "#1A1612";
+  for (const l of lines) { x.fillText(l, S / 2, y); y += size + 14; }
+
+  x.fillStyle = "#6B1D2A"; x.font = 'italic 38px Georgia, serif';
+  x.fillText("by " + String(book.author || ""), S / 2, y + 24);
+
+  x.fillStyle = "#8A7E73"; x.font = "400 30px Helvetica, Arial, sans-serif";
+  const detail = `${chapters} chapters, one at a time` + (days ? `  ·  ${days} days` : "");
+  x.fillText(detail, S / 2, y + 96);
+
+  x.strokeStyle = "#E8E2DA"; x.lineWidth = 2;
+  x.beginPath(); x.moveTo(S / 2 - 90, S - 190); x.lineTo(S / 2 + 90, S - 190); x.stroke();
+  x.fillStyle = "#B0A79A"; x.font = "400 26px Helvetica, Arial, sans-serif";
+  x.fillText("the-chapter-one.vercel.app", S / 2, S - 128);
+  return c.toDataURL("image/png");
 }
 
 // ─── WIKIMEDIA IMAGE URL ───────────────────────────────────────
@@ -812,6 +865,8 @@ export default function App() {
   const [book, setBook] = useState(null);
   const [subs, setSubs] = useState([]);
   const [chIdx, setChIdx] = useState(null);
+  const [finished, setFinished] = useState([]);   // completed books
+  const [doneModal, setDoneModal] = useState(null); // completion celebration
   const [chText, setChText] = useState("");
   const [chCache, setChCache] = useState({});
   const [preCache, setPreCache] = useState({});
@@ -865,6 +920,7 @@ export default function App() {
     try { const r = await window.storage.get("ch7-subs"); if (r?.value) { const s = JSON.parse(r.value); setSubs(s); subsRef.current = s; } } catch {}
     try { const r = await window.storage.get("ch7-inbox"); if (r?.value) { const x = JSON.parse(r.value); setInbox(x); inboxRef.current = x; } } catch {}
     try { const r = await window.storage.get("ch7-streak"); if (r?.value) setStreak(JSON.parse(r.value)); } catch {}
+    try { const r = await window.storage.get("ch7-finished"); if (r?.value) setFinished(JSON.parse(r.value)); } catch {}
     try { const r = await window.storage.get("ch7-prefs"); if (r?.value) { const p = JSON.parse(r.value); setTheme(p.t||"sepia"); setFontFam(p.f||"serif"); setFontSize(p.s||19); } } catch {}
     try { const r = await window.storage.get("ch7-email"); if (r?.value) setUserEmail(r.value); } catch {}
     try { const r = await window.storage.get("ch7-plan"); if (r?.value) { setUserPlan(r.value); planRef.current = r.value; } } catch {}
@@ -1041,6 +1097,17 @@ export default function App() {
   const getT = async (k) => { if(chCache[k]) return chCache[k]; try { const r = await window.storage.get(`ch7-t-${k}`); if(r?.value){setChCache(c=>({...c,[k]:r.value}));return r.value;} } catch {} return null; };
   const getP = async (k) => { if(preCache[k]) return preCache[k]; try { const r = await window.storage.get(`ch7-p-${k}`); if(r?.value){setPreCache(c=>({...c,[k]:r.value}));return r.value;} } catch {} return null; };
 
+  const saveFinished = async (f) => { setFinished(f); try { await window.storage.set("ch7-finished", JSON.stringify(f)); } catch {} };
+  // Finishing a book is the one moment worth celebrating (and sharing).
+  const markFinished = (b) => {
+    const sub = getSub(b.id);
+    const days = sub?.startDate ? Math.max(1, Math.round((Date.now() - new Date(sub.startDate)) / 86400000)) : null;
+    if (!finished.some(f => f.bookId === b.id)) {
+      saveFinished([...finished, { bookId: b.id, at: new Date().toISOString(), days }]);
+    }
+    setDoneModal({ book: b, days });
+  };
+
   const recordRead = () => {
     const today = new Date().toDateString();
     if (streak.lastDate === today) return;
@@ -1177,7 +1244,7 @@ export default function App() {
       const subject = `📖 Your chapter is ready: ${b.title}, ${chLabel}`;
       const html = buildEmailHTML(b, chapters, sub.token);
       const txt = buildEmailText(b, chapters, sub.token);
-      const result = await sendEmail(recipients, subject, html, txt, sub.token);
+      const result = await sendEmail(recipients, subject, html, txt, sub.token, { bookId: b.id, token: sub.token, chNum: chapters[0].chNum });
       if(result.ok){
         emailStatus = "sent";
       } else {
@@ -1221,6 +1288,13 @@ export default function App() {
       return;
     }
 
+    // Register with the server FIRST so the very first email already carries a
+    // token: that gives it a working one-click unsubscribe link and seeds the
+    // message-id thread that every later chapter replies into. If the server
+    // has no DB this returns null and the in-browser engine keeps handling it.
+    const token = await serverCreateSub(newSub);
+    if (token) { newSub.token = token; newSub.serverManaged = true; }
+
     // Instant delivery of first batch
     setDelivering(true);
     showToast("Preparing your first chapter…","info");
@@ -1228,11 +1302,9 @@ export default function App() {
     newSub.currentChapter = items.length;
     newSub.lastDeliveryDate = new Date().toISOString();
 
-    // Register with the server so the daily cron takes over scheduled
-    // deliveries (works even when no tab is open). If the server has no DB
-    // this quietly returns null and the in-browser engine keeps handling it.
-    const token = await serverCreateSub(newSub);
-    if (token) { newSub.token = token; newSub.serverManaged = true; }
+    // Re-upsert to record progress. ON CONFLICT keeps the original token, so
+    // this returns the same identity rather than orphaning the thread.
+    if (token) await serverCreateSub(newSub);
 
     const updSubs = [...subs.filter(s=>s.bookId!==bookId), newSub];
     await saveSubs(updSubs);
@@ -1753,7 +1825,9 @@ export default function App() {
             )}
             <div style={{display:"flex",justifyContent:"space-between",padding:"20px 0",borderTop:`1px solid ${th.bd}`,marginTop:16}}>
               <button className="b bo" disabled={chIdx<=1} onClick={()=>readCh(book,chIdx-1)} style={{opacity:chIdx<=1?.3:1,borderColor:th.bd,color:th.fg}}>← Prev</button>
-              <button className="b bp" disabled={chIdx>=book.chapters} onClick={()=>readCh(book,chIdx+1)} style={{opacity:chIdx>=book.chapters?.3:1}}>Next →</button>
+              {chIdx>=book.chapters
+                ? <button className="b bp" onClick={()=>markFinished(book)}>✓ Finish the book</button>
+                : <button className="b bp" onClick={()=>readCh(book,chIdx+1)}>Next →</button>}
             </div>
           </div>
         </main>
@@ -1813,6 +1887,36 @@ export default function App() {
       )}
 
       {/* ═══ SUBSCRIBE MODAL ═══ */}
+      {/* ═══ COMPLETION CELEBRATION + SHARE CARD ═══ */}
+      {doneModal&&(()=>{
+        const b=doneModal.book;
+        const shareText=`I just finished ${b.title} by ${b.author} — one chapter at a time, with The Chapter.`;
+        const shareUrl="https://the-chapter-one.vercel.app";
+        return <div className="mod-bg" onClick={e=>e.target===e.currentTarget&&setDoneModal(null)}><div className="mod" style={{maxWidth:420,textAlign:"center"}}>
+          <p style={{fontSize:40,margin:"4px 0 6px"}}>🎉</p>
+          <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#B8964E",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>You finished</p>
+          <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:700,marginBottom:4}}>{b.title}</h2>
+          <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontStyle:"italic",color:"#8A7E73",marginBottom:10}}>by {b.author}</p>
+          <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73",marginBottom:18}}>
+            {b.chapters} chapters, one at a time{doneModal.days?` · ${doneModal.days} days`:""}.
+          </p>
+          <button className="b bp" style={{width:"100%",justifyContent:"center",padding:"12px"}} onClick={async()=>{
+            try{
+              if(navigator.share){ await navigator.share({ title:"The Chapter", text:shareText, url:shareUrl }); }
+              else { await navigator.clipboard.writeText(`${shareText} ${shareUrl}`); showToast("Copied — paste it anywhere.","success"); }
+            }catch{}
+          }}>Share this</button>
+          <button className="b bo" style={{width:"100%",justifyContent:"center",padding:"11px",marginTop:8}} onClick={()=>{
+            try{
+              const url=drawShareCard(b,{chapters:b.chapters,days:doneModal.days});
+              const a=document.createElement("a"); a.href=url; a.download=`the-chapter-${b.id}.png`; a.click();
+              showToast("Card saved — post it anywhere.","success");
+            }catch{ showToast("Couldn't make the card here.","error"); }
+          }}>⬇ Download share card</button>
+          <button className="b bg" style={{textAlign:"center",display:"block",margin:"8px auto 0"}} onClick={()=>setDoneModal(null)}>Done</button>
+        </div></div>;
+      })()}
+
       {/* ═══ CREATE GROUP READING ═══ */}
       {grpModal&&(()=>{
         const gb=BOOKS.find(x=>x.id===grpModal.bookId); if(!gb) return null;

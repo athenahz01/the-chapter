@@ -119,3 +119,22 @@ export function buildEmailText(book, chapters, { origin, token, readingTitle, pa
   out += `\n\n${"─".repeat(40)}\nContinue in the app: ${readUrl}\nUnsubscribe: ${unsubUrl}`;
   return out;
 }
+
+// ─── Email threading ───────────────────────────────────────────
+// Every chapter for a given subscription replies into one thread, so a reader
+// gets ONE conversation per book instead of 61 separate emails. Message-IDs are
+// derived from (book, token, chapter) rather than stored, so they can never
+// drift out of sync: chapter N always references chapter N-1 and the root.
+// Requires the subscription token; without one we simply don't thread.
+export function threadHeaders({ bookId, token, chNum, fromEmail }) {
+  if (!token || !chNum) return null;
+  const domain = (String(fromEmail || "").match(/@([^>\s]+)/) || [])[1] || "thechapter.app";
+  const id = (n) => `<the-chapter.${bookId}.${token}.${n}@${domain}>`;
+  const headers = { "Message-ID": id(chNum) };
+  if (chNum > 1) {
+    const root = id(1), prev = id(chNum - 1);
+    headers["In-Reply-To"] = prev;
+    headers["References"] = root === prev ? root : `${root} ${prev}`;
+  }
+  return headers;
+}
