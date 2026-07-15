@@ -13,7 +13,7 @@
 // Safe to re-run: last_delivery_date guards against double-sends within a
 // day, and each subscription is updated only after its email succeeds.
 
-import { hasDb, query, getExtras, setExtras } from "./_lib/db.js";
+import { hasDb, query, getExtras, setExtras, setPrelude } from "./_lib/db.js";
 import { byId } from "./_lib/catalog.js";
 import { getChapter } from "./_lib/gutenberg.js";
 import { getPrelude, getChapterFallback, getDiscussionQuestions, sendEmailDirect } from "./_lib/services.js";
@@ -123,7 +123,14 @@ export default async function handler(req, res) {
       // Preludes: best-effort, never block the send.
       for (const ch of chapters) {
         if (Date.now() - started > TIME_BUDGET_MS) break;
-        ch.prelude = await getPrelude(book.title, ch.chNum, ch.text.slice(0, 1200)).catch(() => null);
+        // Cached per (book, chapter) — generated once for the whole cohort.
+        let pre = null;
+        try { pre = (await getExtras(book.id, ch.chNum))?.prelude || null; } catch {}
+        if (!pre) {
+          pre = await getPrelude(book.title, ch.chNum, ch.text.slice(0, 1200)).catch(() => null);
+          if (pre) { try { await setPrelude(book.id, ch.chNum, pre); } catch {} }
+        }
+        ch.prelude = pre;
       }
 
       // Reading extras: cohort size + shared discussion questions (cached

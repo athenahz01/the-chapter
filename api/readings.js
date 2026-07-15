@@ -84,7 +84,7 @@ export default async function handler(req, res) {
       const book = byId(bookId);
       if (!book) return res.status(400).json({ ok: false, error: "Unknown book" });
       const cleanTitle = String(title || `Reading ${book.title} together`).slice(0, 80);
-      const deliveryDays = (body.deliveryDays || [1, 3, 5]).filter(d => Number.isInteger(d) && d >= 0 && d <= 6);
+      const deliveryDays = (body.deliveryDays || [1]).filter(d => Number.isInteger(d) && d >= 0 && d <= 6);
       if (!deliveryDays.length) return res.status(400).json({ ok: false, error: "No delivery days" });
       const r = await createReading({
         bookId, title: cleanTitle, deliveryDays,

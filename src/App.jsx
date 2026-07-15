@@ -450,6 +450,17 @@ async function createGroupReading({ bookId, title, deliveryDays, createdBy }) {
   } catch { return { ok: false }; }
 }
 
+// Server-cached prelude: generated once per (book, chapter) for the whole
+// cohort instead of one Claude call per reader.
+async function fetchPreludeCached(bookId, ch) {
+  try {
+    const r = await fetch(`/api/prelude?book=${encodeURIComponent(bookId)}&ch=${ch}`);
+    if (!r.ok) return null;
+    const d = await r.json();
+    return d?.ok ? d.prelude : null;
+  } catch { return null; }
+}
+
 async function fetchQuestions(bookId, ch) {
   try {
     const r = await fetch(`/api/questions?book=${encodeURIComponent(bookId)}&ch=${ch}`);
@@ -576,6 +587,7 @@ function buildEmailHTML(book, chapters, token) {
   const label = chLabelOf(chapters);
   const mins = readMinutes(chapters);
   const prelude = chapters[0]?.prelude;
+  const pct = Math.min(100, Math.round((chapters[chapters.length-1].chNum / Math.max(1, book.chapters)) * 100));
   const preludeBlock = prelude ? `
   <div style="background:#FBF5EC;border-left:3px solid #B8964E;padding:16px 20px;margin:24px 0;border-radius:0 6px 6px 0;text-align:left">
     <p style="font-size:10px;color:#B8964E;text-transform:uppercase;letter-spacing:1.5px;margin:0 0 8px;font-family:Helvetica,sans-serif">A prelude to set the scene</p>
@@ -598,7 +610,8 @@ function buildEmailHTML(book, chapters, token) {
   <p style="font-size:12px;color:#B8964E;text-transform:uppercase;letter-spacing:2px;margin:0 0 14px">Your chapter is ready</p>
   <h1 style="font-family:Georgia,serif;font-size:26px;color:#1A1612;margin:0 0 6px">${esc(book.title)}</h1>
   <p style="font-size:14px;color:#8A7E73;margin:0 0 4px;font-style:italic">by ${esc(book.author)}</p>
-  <p style="font-size:13px;color:#8A7E73;margin:14px 0 0">${esc(label)} of ${esc(book.chapters)} &nbsp;·&nbsp; about ${mins} min</p>
+  <p style="font-size:13px;color:#8A7E73;margin:14px 0 0">${esc(label)} of ${esc(book.chapters)} &nbsp;·&nbsp; about ${mins} min &nbsp;·&nbsp; ${pct}% complete</p>
+  <div style="max-width:240px;margin:12px auto 0;background:#EDE7DD;border-radius:3px;height:5px"><div style="width:${pct}%;height:5px;background:#B8964E;border-radius:3px"></div></div>
   ${preludeBlock}
   <div style="text-align:left;margin:26px 0 0">${chapterBody}</div>
   <div style="margin:34px 0 0;padding-top:24px;border-top:1px solid #E8E2DA">
@@ -982,7 +995,7 @@ export default function App() {
         setBook(b);
         setView("book");
         setTimeout(() => {
-          setSubModal({ bookId: b.id, email: email || userEmail || "", days: [1, 3, 5], cpd: 1, friends: "", plan: "free" });
+          setSubModal({ bookId: b.id, email: email || userEmail || "", days: [1], cpd: 1, friends: "", plan: "free" });
         }, 400);
       }
     }
@@ -1085,7 +1098,10 @@ export default function App() {
   const fetchPre = async (b,num,text) => {
     const k=`${b.id}-${num}`; let p = await getP(k);
     if(p) return p;
-    p = await getAIPrelude(text,b.title,num);
+    // Shared, server-cached prelude first (one generation per chapter for
+    // everyone); direct generation only if that's unavailable.
+    p = await fetchPreludeCached(b.id,num);
+    if(!p) p = await getAIPrelude(text,b.title,num);
     if(p) await cachePre(k,p);
     return p;
   };
@@ -1504,10 +1520,10 @@ export default function App() {
                   <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#8A7E73"}}>{book.chapters} chapters · First {FREE_CHAPTERS} free, then ${PRICE_MONTHLY}/mo · Preludes set the scene · Read with friends</p>
                 </div>
               </div>
-              <button className="b bp" style={{width:"100%",justifyContent:"center",padding:"13px 20px",fontSize:14}} onClick={()=>setSubModal({bookId:book.id,email:userEmail,days:[1,3,5],cpd:1,friends:"",plan:"free"})}>
+              <button className="b bp" style={{width:"100%",justifyContent:"center",padding:"13px 20px",fontSize:14}} onClick={()=>setSubModal({bookId:book.id,email:userEmail,days:[1],cpd:1,friends:"",plan:"free"})}>
                 Start Reading · Free
               </button>
-              <button className="b bo" style={{width:"100%",justifyContent:"center",padding:"11px 20px",fontSize:13,marginTop:8}} onClick={()=>setGrpModal({bookId:book.id,name:`Reading ${book.title} together`,days:[1,3,5],busy:false,result:null})}>
+              <button className="b bo" style={{width:"100%",justifyContent:"center",padding:"11px 20px",fontSize:13,marginTop:8}} onClick={()=>setGrpModal({bookId:book.id,name:`Reading ${book.title} together`,days:[1],busy:false,result:null})}>
                 👥 Start a group reading · invite friends, family, or your club
               </button>
               <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A7E73",textAlign:"center",marginTop:6}}>Enter your email, pick your schedule, get Chapter 1 instantly.</p>
@@ -1532,7 +1548,7 @@ export default function App() {
               <div className="prg" style={{marginBottom:4}}><div className="prg-f" style={{width:`${Math.round((curSub.currentChapter/book.chapters)*100)}%`}} /></div>
               <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#8A7E73"}}>Ch. {curSub.currentChapter}/{book.chapters} · {Math.round((curSub.currentChapter/book.chapters)*100)}%</p>
               <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
-                {curSub.plan==="free"&&curSub.currentChapter>=FREE_CHAPTERS&&<button className="b bp" onClick={()=>setSubModal({bookId:book.id,email:curSub.email,days:curSub.scheduleDays||[1,3,5],cpd:curSub.chaptersPerDelivery||1,friends:(curSub.friends||[]).join(", "),plan:"monthly",isUpgrade:true})}>Upgrade · ${PRICE_MONTHLY}/mo for unlimited</button>}
+                {curSub.plan==="free"&&curSub.currentChapter>=FREE_CHAPTERS&&<button className="b bp" onClick={()=>setSubModal({bookId:book.id,email:curSub.email,days:curSub.scheduleDays||[1],cpd:curSub.chaptersPerDelivery||1,friends:(curSub.friends||[]).join(", "),plan:"monthly",isUpgrade:true})}>Upgrade · ${PRICE_MONTHLY}/mo for unlimited</button>}
                 <button className="b bo" onClick={()=>nav("inbox")}>View Inbox</button>
                 <button className="b bo" onClick={()=>readCh(book,Math.min(curSub.currentChapter+1,book.chapters))}>Read in App</button>
               </div>
@@ -1809,7 +1825,7 @@ export default function App() {
             <button className="b bp" style={{width:"100%",justifyContent:"center",padding:"12px"}} onClick={()=>{
               const rd = { ...grpModal.result.reading, inviteCode: grpModal.result.inviteCode };
               setGrpModal(null);
-              setSubModal({ bookId:gb.id, email:userEmail||"", days:rd.deliveryDays||[1,3,5], cpd:1, friends:"", plan:"free", reading:rd, sendNow:true, wantQ:true, deliveryHour:null });
+              setSubModal({ bookId:gb.id, email:userEmail||"", days:rd.deliveryDays||[1], cpd:1, friends:"", plan:"free", reading:rd, sendNow:true, wantQ:true, deliveryHour:null });
             }}>Join your group now</button>
             <button className="b bg" style={{textAlign:"center",display:"block",marginTop:6}} onClick={()=>setGrpModal(null)}>Done</button>
           </>)}

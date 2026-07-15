@@ -36,6 +36,9 @@
     },
     "api/questions.js": {
       "maxDuration": 30
+    },
+    "api/prelude.js": {
+      "maxDuration": 30
     }
   },
   "crons": [

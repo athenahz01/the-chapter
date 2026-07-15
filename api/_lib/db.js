@@ -57,7 +57,7 @@ async function ensureSchema(p) {
       friends TEXT[] NOT NULL DEFAULT '{}',
       book_id TEXT NOT NULL,
       plan TEXT NOT NULL DEFAULT 'free',
-      schedule_days INT[] NOT NULL DEFAULT '{1,3,5}',
+      schedule_days INT[] NOT NULL DEFAULT '{1}',
       chapters_per_delivery INT NOT NULL DEFAULT 1,
       current_chapter INT NOT NULL DEFAULT 0,
       paused BOOLEAN NOT NULL DEFAULT FALSE,
@@ -125,6 +125,9 @@ async function ensureSchema(p) {
     ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS reading_id TEXT;
     ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS want_questions BOOLEAN NOT NULL DEFAULT FALSE;
     ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS delivery_hour INT;
+    -- Preludes cached per (book, chapter): one generation for the whole
+    -- cohort instead of one Claude call per reader.
+    ALTER TABLE chapter_extras ADD COLUMN IF NOT EXISTS prelude TEXT;
   `);
 }
 
@@ -160,7 +163,7 @@ export async function upsertSubscription(s) {
       s.friends || [],
       s.bookId,
       s.plan || "free",
-      s.scheduleDays || [1, 3, 5],
+      s.scheduleDays || [1],
       s.chaptersPerDelivery || 1,
       s.currentChapter || 0,
       s.lastDeliveryDate ? new Date(s.lastDeliveryDate) : null,
@@ -221,7 +224,7 @@ export async function createReading(rd) {
 // ─── Chapter extras (cached discussion questions) ──────────────
 
 export async function getExtras(bookId, chapter) {
-  const r = await query(`SELECT questions FROM chapter_extras WHERE book_id=$1 AND chapter=$2`, [bookId, chapter]);
+  const r = await query(`SELECT questions, prelude FROM chapter_extras WHERE book_id=$1 AND chapter=$2`, [bookId, chapter]);
   return r.rows[0] || null;
 }
 
@@ -294,5 +297,13 @@ export async function setBookCache(gid, chapters) {
     `INSERT INTO book_cache (gid, chapters) VALUES ($1, $2)
      ON CONFLICT (gid) DO UPDATE SET chapters = EXCLUDED.chapters, created_at = NOW()`,
     [gid, JSON.stringify(chapters)]
+  );
+}
+
+export async function setPrelude(bookId, chapter, prelude) {
+  await query(
+    `INSERT INTO chapter_extras (book_id, chapter, prelude) VALUES ($1,$2,$3)
+     ON CONFLICT (book_id, chapter) DO UPDATE SET prelude = EXCLUDED.prelude`,
+    [bookId, chapter, prelude]
   );
 }

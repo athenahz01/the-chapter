@@ -45,6 +45,7 @@ export function buildEmailHTML(book, chapters, { origin, token, readingTitle, pa
   const label = chapterLabel(chapters);
   const mins = readMinutes(chapters);
   const prelude = chapters[0]?.prelude;
+  const pct = Math.min(100, Math.round((chapters[chapters.length - 1].chNum / Math.max(1, book.chapters)) * 100));
 
   const readingLine = readingTitle
     ? `<p style="font-size:12px;color:#B8964E;text-transform:uppercase;letter-spacing:2px;margin:0 0 14px">${esc(readingTitle)}${participants > 1 ? ` &nbsp;·&nbsp; ${participants.toLocaleString()} readers` : ""}</p>`
@@ -80,7 +81,8 @@ export function buildEmailHTML(book, chapters, { origin, token, readingTitle, pa
   ${readingLine}
   <h1 style="font-family:Georgia,serif;font-size:26px;color:#1A1612;margin:0 0 6px">${esc(book.title)}</h1>
   <p style="font-size:14px;color:#8A7E73;margin:0 0 4px;font-style:italic">by ${esc(book.author)}</p>
-  <p style="font-size:13px;color:#8A7E73;margin:14px 0 0">${esc(label)} of ${esc(book.chapters)} &nbsp;·&nbsp; about ${mins} min</p>
+  <p style="font-size:13px;color:#8A7E73;margin:14px 0 0">${esc(label)} of ${esc(book.chapters)} &nbsp;·&nbsp; about ${mins} min &nbsp;·&nbsp; ${pct}% complete</p>
+  <div style="max-width:240px;margin:12px auto 0;background:#EDE7DD;border-radius:3px;height:5px"><div style="width:${pct}%;height:5px;background:#B8964E;border-radius:3px"></div></div>
   ${preludeBlock}
   <div style="text-align:left;margin:26px 0 0">${chapterBody}</div>
   ${questionsBlock}
@@ -108,7 +110,8 @@ export function buildEmailText(book, chapters, { origin, token, readingTitle, pa
   let out = readingTitle
     ? `${readingTitle}${participants > 1 ? ` · ${participants} readers` : ""}\n\n`
     : `Your chapter is ready\n\n`;
-  out += `${book.title} by ${book.author}\n${label} of ${book.chapters} · about ${mins} min\n`;
+  const pct = Math.min(100, Math.round((chapters[chapters.length - 1].chNum / Math.max(1, book.chapters)) * 100));
+  out += `${book.title} by ${book.author}\n${label} of ${book.chapters} · about ${mins} min · ${pct}% complete\n`;
   if (prelude) out += `\nA prelude to set the scene:\n${prelude}\n`;
   out += `\n${"─".repeat(40)}\n\n`;
   out += chapters.map(ch => (chapters.length > 1 ? `Chapter ${ch.chNum}\n\n` : "") + String(ch.text || "").trim()).join(`\n\n${"─".repeat(40)}\n\n`);

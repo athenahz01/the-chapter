@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       }
     }
     // Generate from the real chapter text.
-    const g = await getChapter({ q: book.gq || `${book.title} ${book.author}`, ch });
+    const g = await getChapter({ gid: book.gid, q: book.gq || `${book.title} ${book.author}`, ch });
     if (!g.ok) return res.status(502).json({ ok: false, error: "Could not fetch chapter text" });
     const raw = await getDiscussionQuestions(book.title, ch, g.text.slice(0, 2500));
     if (!raw) return res.status(200).json({ ok: false, error: "Question generation unavailable" });
