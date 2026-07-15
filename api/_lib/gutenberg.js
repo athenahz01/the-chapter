@@ -113,7 +113,56 @@ const HEADING_PATTERNS = [
   /^[ \t]*(?:[IVXLCDM]{1,7}|\d{1,3})\.?[ \t]*$/gm,
 ];
 
+// ─── Chinese chapter splitting ─────────────────────────────────
+// Chinese classics mark chapters with 第一回 / 第一章 / 學而第一 — none of the
+// English patterns match. Notes on the tricky parts:
+//  · numerals include ○ (U+25CB) as well as 〇 — 紅樓夢/三國演義 use both.
+//  · full-width space (U+3000) is the usual indent, so it must count as space.
+//  · the lookahead rejects prose that merely starts with 第X回 (e.g.
+//    "第四回中既將薛家母子…" is narrative, not a heading).
+//  · Chinese is far denser than English: a 道德經 chapter is ~80 characters,
+//    so the English 400-char floor would throw 25 of its 81 chapters away.
+//  · some files repeat a heading; we keep the copy with the real body.
+const ZH_NUM = "一二三四五六七八九十百千零〇○两兩0-9";
+const ZH_PATTERNS = [
+  new RegExp(`^[ \\t\\u3000]*第[${ZH_NUM}]+[回章](?![\\u4e00-\\u9fff])[^\\n]*$`, "gm"),
+  new RegExp(`^[ \\t\\u3000]*\\S{1,8}第[${ZH_NUM}]+[ \\t\\u3000]*$`, "gm"),
+  new RegExp(`^[ \\t\\u3000]*第[${ZH_NUM}]+[節节篇折](?![\\u4e00-\\u9fff])[^\\n]*$`, "gm"),
+];
+const ZH_MIN_BODY = 20;
+
+function splitChineseChapters(text) {
+  for (const pattern of ZH_PATTERNS) {
+    pattern.lastIndex = 0;
+    const hits = [];
+    let m;
+    while ((m = pattern.exec(text)) !== null) hits.push({ i: m.index, h: m[0] });
+    if (hits.length < 3) continue;
+
+    const segs = hits.map((hit, i) => {
+      const seg = text.slice(hit.i, hits[i + 1]?.i ?? text.length);
+      const body = seg.slice(seg.indexOf("\n") + 1).trim();
+      const num = (hit.h.match(new RegExp(`第([${ZH_NUM}]+)`)) || [])[1] || `_${i}`;
+      return { num, body };
+    }).filter(s => s.body.length > ZH_MIN_BODY);
+
+    const best = new Map();
+    for (const s of segs) {
+      const prev = best.get(s.num);
+      if (!prev || s.body.length > prev.body.length) best.set(s.num, s);
+    }
+    const out = [...best.values()].map(s => unwrap(s.body).trim());
+    if (out.length >= 3) return out;
+  }
+  return null;
+}
+
 function splitChapters(text) {
+  // Chinese first — these patterns require 第, so they can never match an
+  // English text; English books fall straight through to the patterns below.
+  const zh = splitChineseChapters(text);
+  if (zh && zh.length >= 3) return zh;
+
   for (const pattern of HEADING_PATTERNS) {
     pattern.lastIndex = 0;
     const marks = [];

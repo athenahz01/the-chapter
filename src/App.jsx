@@ -274,6 +274,27 @@ const BOOKS = [
   { id:"prince", gid:1232, title:"The Prince", author:"Niccolò Machiavelli", year:1532, genre:"Political Philosophy", chapters:26,
     wsPage:(n)=>{const ROM=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII","XXIV","XXV","XXVI"]; return ROM[n]?`The_Prince_(Hill_Thomson)/Chapter_${ROM[n]}`:null;},
     cover:{ accent:"#2A1A1A", motif:"P" }, group:"Other Classics" },
+
+  // ─── CHINESE CLASSICS (8) ────────────────────────────────────
+  // Original-language texts from Project Gutenberg (public domain). The
+  // chapter counts below are VERIFIED against the real splitter output, so
+  // every chapter resolves — see splitChineseChapters in _lib/gutenberg.js.
+  { id:"sanguo", gid:23950, title:"三國演義 · Romance of the Three Kingdoms", author:"羅貫中 Luo Guanzhong", year:1522, genre:"Chinese Classic", chapters:120, wsPage:null,
+    cover:{ accent:"#7A2E2E", motif:"三" }, group:"Chinese Classics" },
+  { id:"xiyouji", gid:23962, title:"西遊記 · Journey to the West", author:"吳承恩 Wu Cheng'en", year:1592, genre:"Chinese Classic", chapters:100, wsPage:null,
+    cover:{ accent:"#8A5A1A", motif:"西" }, group:"Chinese Classics" },
+  { id:"shuihu", gid:23863, title:"水滸傳 · Water Margin", author:"施耐庵 Shi Nai'an", year:1400, genre:"Chinese Classic", chapters:70, wsPage:null,
+    cover:{ accent:"#2A4A5A", motif:"水" }, group:"Chinese Classics" },
+  { id:"hongloumeng", gid:24264, title:"紅樓夢 · Dream of the Red Chamber", author:"曹雪芹 Cao Xueqin", year:1791, genre:"Chinese Classic", chapters:120, wsPage:null,
+    cover:{ accent:"#8A2A3A", motif:"紅" }, group:"Chinese Classics" },
+  { id:"daodejing", gid:7337, title:"道德經 · Tao Te Ching", author:"老子 Laozi", year:-400, genre:"Philosophy", chapters:81, wsPage:null,
+    cover:{ accent:"#3A4A3A", motif:"道" }, group:"Chinese Classics" },
+  { id:"lunyu", gid:23839, title:"論語 · The Analects", author:"孔子 Confucius", year:-450, genre:"Philosophy", chapters:20, wsPage:null,
+    cover:{ accent:"#4A3A2A", motif:"論" }, group:"Chinese Classics" },
+  { id:"sunzi", gid:23864, title:"孫子兵法 · The Art of War (original)", author:"孫子 Sun Tzu", year:-500, genre:"Philosophy", chapters:13, wsPage:null,
+    cover:{ accent:"#2A3A4A", motif:"孫" }, group:"Chinese Classics" },
+  { id:"laocan", gid:25124, title:"老殘遊記 · The Travels of Lao Can", author:"劉鶚 Liu E", year:1907, genre:"Chinese Classic", chapters:20, wsPage:null,
+    cover:{ accent:"#4A4A2A", motif:"老" }, group:"Chinese Classics" },
 ];
 
 // ─── WIKISOURCE FETCHER ────────────────────────────────────────
