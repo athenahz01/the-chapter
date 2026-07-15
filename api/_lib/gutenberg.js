@@ -245,13 +245,55 @@ function rememberWarm(gid, book) {
 }
 
 
-export async function getChapter({ q, gid, ch }) {
+// ─── Long-chapter splitting ────────────────────────────────────
+// Measured across the catalogue: Tolstoy's chapters average 6 minutes and
+// never exceed 20, but Dickens runs a median of 27 minutes and a max of 42 —
+// "here's Chapter 7, good luck" is a much weaker promise than "you can read
+// this in 20 minutes". So we split only the offenders, at paragraph
+// boundaries, and label them "Chapter 7 · Part 1 of 2". Short chapters are
+// left completely alone.
+const TARGET_PART_MIN = 16;   // aim for ~16 minutes per part
+const SPLIT_ABOVE_MIN = 22;   // leave anything under this untouched (Tolstoy maxes at 18)
+
+export function readingMinutes(text) {
+  const s = String(text || "");
+  // CJK has no spaces: measure characters (~400/min) instead of words (~220/min).
+  const cjk = (s.slice(0, 400).match(/[\u4e00-\u9fff]/g) || []).length > 40;
+  return cjk ? s.length / 400 : s.split(/\s+/).filter(Boolean).length / 220;
+}
+
+export function splitIntoParts(text) {
+  const mins = readingMinutes(text);
+  if (mins <= SPLIT_ABOVE_MIN) return [text];
+  const n = Math.max(2, Math.round(mins / TARGET_PART_MIN));
+  const paras = String(text).split(/\n\n+/);
+  if (paras.length < n) return [text];           // can't split cleanly — leave it
+  const target = text.length / n;
+  const parts = [];
+  let cur = [], len = 0;
+  for (const p of paras) {
+    cur.push(p); len += p.length + 2;
+    if (len >= target && parts.length < n - 1) { parts.push(cur.join("\n\n")); cur = []; len = 0; }
+  }
+  if (cur.length) parts.push(cur.join("\n\n"));
+  return parts.filter(p => p.trim());
+}
+
+export async function getChapter({ q, gid, ch, part }) {
   if (!gid) gid = await resolveGid(q);
   if (!gid) return { ok: false, error: "Could not resolve this work on Project Gutenberg" };
   const book = await loadBook(gid);
   if (!book) return { ok: false, gid, error: `Could not fetch/parse Gutenberg text #${gid}` };
   if (ch > book.chapters.length) return { ok: false, gid, total: book.chapters.length, error: "Chapter out of range" };
-  return { ok: true, gid, total: book.chapters.length, text: book.chapters[ch - 1] };
+  const whole = book.chapters[ch - 1];
+  const pieces = splitIntoParts(whole);
+  const p = Math.min(Math.max(1, parseInt(part, 10) || 1), pieces.length);
+  return {
+    ok: true, gid, total: book.chapters.length,
+    text: pieces[p - 1],
+    part: p, parts: pieces.length,
+    minutes: Math.max(1, Math.round(readingMinutes(pieces[p - 1]))),
+  };
 }
 
 export { resolveGid, loadBook, stripBoilerplate, splitChapters, unwrap, norm, matchScore };

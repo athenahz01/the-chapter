@@ -38,13 +38,14 @@ export default async function handler(req, res) {
   const q = req.query?.q;
   const ch = parseInt(req.query?.ch, 10);
   const gid = parseInt(req.query?.gid, 10) || null;
+  const part = parseInt(req.query?.part, 10) || 1;
 
   if ((!q && !gid) || !ch || ch < 1) {
     return res.status(400).json({ ok: false, error: "Requires ?q=<title author> (or gid) and ?ch=<chapter number>" });
   }
 
   try {
-    const result = await getChapter({ q, gid, ch });
+    const result = await getChapter({ q, gid, ch, part });
     if (result.ok) {
       // Immutable public-domain text — cache hard at the CDN (1 week).
       res.setHeader("Cache-Control", "public, s-maxage=604800, stale-while-revalidate=86400");

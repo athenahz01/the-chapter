@@ -343,7 +343,7 @@ async function fetchChapterWS(page) {
 // the resolution step entirely.
 const gidCache = {}; // bookId → gutenberg id (also persisted to storage)
 
-async function fetchChapterGutenberg(b, num) {
+async function fetchChapterGutenberg(b, num, part = 1) {
   try {
     // Reuse a previously-resolved Gutenberg ID if we have one.
     let gid = gidCache[b.id] || b.gid; // baked catalog id; skips Gutendex (blocked from Vercel egress)
@@ -353,6 +353,7 @@ async function fetchChapterGutenberg(b, num) {
     const q = b.gq || `${b.title} ${b.author}`;
     const params = new URLSearchParams({ q, ch: String(num), v: String(TEXT_VERSION) });
     if (gid) params.set("gid", String(gid));
+    if (part > 1) params.set("part", String(part));
 
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 55000); // cold fetch of a big book can take a while
@@ -364,7 +365,11 @@ async function fetchChapterGutenberg(b, num) {
       gidCache[b.id] = d.gid;
       try { await window.storage.set(`ch7-gid-${b.id}`, String(d.gid)); } catch {}
     }
-    return d?.ok && typeof d.text === "string" && d.text.length > 200 ? d.text : null;
+    // Long chapters come back split into ~16-minute parts ("Chapter 7 · Part 1 of 2");
+    // short ones are a single part, exactly as before.
+    return d?.ok && typeof d.text === "string" && d.text.length > 200
+      ? { text: d.text, part: d.part || 1, parts: d.parts || 1 }
+      : null;
   } catch { return null; }
 }
 
@@ -678,7 +683,7 @@ function buildEmailText(book, chapters, token) {
 // falls back to English instead of rendering blank. Simplified Chinese.
 const ZH = {
   // nav / shell
-  "Library":"书库","Inbox":"收件箱","My Books":"我的书","Home":"首页","Install app":"安装应用",
+  "Chapter {n}":"第 {n} 章","Part {p} of {t}":"第 {p} 部分（共 {t} 部分）","Library":"书库","Inbox":"收件箱","My Books":"我的书","Home":"首页","Install app":"安装应用",
   "Browse Library":"浏览书库","Featured":"精选","All":"全部","Search books, authors…":"搜索书名、作者…",
   // book detail
   "Get this book delivered to you":"把这本书寄给你",
@@ -925,6 +930,8 @@ export default function App() {
   const [lang, setLang] = useState(detectLang);   // "en" | "zh"
   const t = (s, p) => translate(lang, s, p);
   const switchLang = (L) => { setLang(L); try { localStorage.setItem("ch7-lang", L); } catch {} };
+  const [chPart, setChPart] = useState(1);        // part within a long chapter
+  const [chParts, setChParts] = useState(1);      // how many parts this chapter has
   const [finished, setFinished] = useState([]);   // completed books
   const [doneModal, setDoneModal] = useState(null); // completion celebration
   const [chText, setChText] = useState("");
@@ -1238,7 +1245,7 @@ export default function App() {
     if(t) return { text:t, src:"cached" };
     let src = null;
     if(b.wsPage){ const ws=b.wsPage(num); if(ws){ t = await fetchChapterWS(ws); if(t) src="Wikisource"; } }
-    if(!t){ t = await fetchChapterGutenberg(b,num); if(t) src="Project Gutenberg"; }
+    if(!t){ const g = await fetchChapterGutenberg(b,num); if(g){ t = g.text; src="Project Gutenberg"; } }
     if(!t){ t = await fetchChapterViaAPI(b.title,b.author,num,`Chapter ${num}`); if(t) src="AI reconstruction"; }
     if(t) await cacheText(k,t);
     return t ? { text:t, src } : null;
@@ -1437,9 +1444,9 @@ export default function App() {
   },[checkDeliveries]);
 
   // ─── Read chapter in app ───
-  const readCh = async (b,num) => {
-    setBook(b); setChIdx(num); setChText(""); setAiPre(""); tts.stop(); setTextSrc(""); nav("reader"); recordRead();
-    const k=`${b.id}-${num}`;
+  const readCh = async (b,num,part=1) => {
+    setBook(b); setChIdx(num); setChPart(part); setChParts(1); setChText(""); setAiPre(""); tts.stop(); setTextSrc(""); nav("reader"); recordRead();
+    const k=part>1?`${b.id}-${num}-p${part}`:`${b.id}-${num}`;
     // Load prelude in background (non-blocking)
     const loadPrelude = async (txt) => { const p = await fetchPre(b,num,txt); if(p) setAiPre(p); };
     // Try cache first (instant)
@@ -1447,10 +1454,10 @@ export default function App() {
     if(cached){ setChText(cached); setTextSrc("cached"); loadPrelude(cached); return; }
     // Try Wikisource
     setLoading(true);
-    if(b.wsPage){ const ws=b.wsPage(num); if(ws){ const t = await fetchChapterWS(ws); if(t){ setChText(t); setLoading(false); setTextSrc("Wikisource"); cacheText(k,t); loadPrelude(t); return; } } }
+    if(b.wsPage && part===1){ const ws=b.wsPage(num); if(ws){ const t = await fetchChapterWS(ws); if(t){ setChText(t); setLoading(false); setTextSrc("Wikisource"); cacheText(k,t); loadPrelude(t); return; } } }
     // Try Project Gutenberg — the real text, covers essentially the whole catalog
-    const g = await fetchChapterGutenberg(b,num);
-    if(g){ setChText(g); setLoading(false); setTextSrc("Project Gutenberg"); cacheText(k,g); loadPrelude(g); return; }
+    const g = await fetchChapterGutenberg(b,num,part);
+    if(g){ setChText(g.text); setChParts(g.parts); setLoading(false); setTextSrc("Project Gutenberg"); cacheText(k,g.text); loadPrelude(g.text); return; }
     // Last resort: Claude reconstruction — labeled honestly, since a model
     // cannot faithfully reproduce the original text.
     const t = await fetchChapterViaAPI(b.title,b.author,num,`Chapter ${num}`);
@@ -1843,7 +1850,7 @@ export default function App() {
             </div>
             <div style={{textAlign:"center",marginBottom:32,paddingBottom:20,borderBottom:`1px solid ${th.bd}`}}>
               <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:th.mt,letterSpacing:2.5,textTransform:"uppercase",marginBottom:6}}>{book.title}</p>
-              <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:700,color:th.fg}}>Chapter {chIdx}</h1>
+              <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:700,color:th.fg}}>{t("Chapter {n}",{n:chIdx})}{chParts>1?` · ${t("Part {p} of {t}",{p:chPart,t:chParts})}`:""}</h1>
               {chText&&!loading&&<p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:th.mt}}>{readTime(chText)} min{textSrc&&` · ${textSrc}`}</p>}
             </div>
             {loading&&<div style={{padding:"24px 0"}}>{[1,2,3,4,5].map(i=><div key={i} className="skel" style={{height:14,width:`${70+Math.random()*20}%`,marginBottom:8}} />)}</div>}
@@ -1889,10 +1896,14 @@ export default function App() {
               </div>
             )}
             <div style={{display:"flex",justifyContent:"space-between",padding:"20px 0",borderTop:`1px solid ${th.bd}`,marginTop:16}}>
-              <button className="b bo" disabled={chIdx<=1} onClick={()=>readCh(book,chIdx-1)} style={{opacity:chIdx<=1?.3:1,borderColor:th.bd,color:th.fg}}>{t("← Prev")}</button>
-              {chIdx>=book.chapters
-                ? <button className="b bp" onClick={()=>markFinished(book)}>{t("✓ Finish the book")}</button>
-                : <button className="b bp" onClick={()=>readCh(book,chIdx+1)}>{t("Next →")}</button>}
+              <button className="b bo" disabled={chIdx<=1&&chPart<=1}
+                onClick={()=>chPart>1?readCh(book,chIdx,chPart-1):readCh(book,chIdx-1)}
+                style={{opacity:(chIdx<=1&&chPart<=1)?.3:1,borderColor:th.bd,color:th.fg}}>{t("← Prev")}</button>
+              {chPart<chParts
+                ? <button className="b bp" onClick={()=>readCh(book,chIdx,chPart+1)}>{t("Next →")}</button>
+                : chIdx>=book.chapters
+                  ? <button className="b bp" onClick={()=>markFinished(book)}>{t("✓ Finish the book")}</button>
+                  : <button className="b bp" onClick={()=>readCh(book,chIdx+1)}>{t("Next →")}</button>}
             </div>
           </div>
         </main>
