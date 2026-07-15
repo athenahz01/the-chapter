@@ -41,6 +41,12 @@ if (!window.storage) {
 // ║  Deploy api/send.js on Vercel, set RESEND_API_KEY env var.   ║
 // ╚═══════════════════════════════════════════════════════════════╝
 const EMAIL_API_URL = "/api/send"; // Your deployed serverless endpoint
+// Must match PARSER_VERSION in api/_lib/gutenberg.js. It rides along in the
+// /api/gutenberg URL purely as a cache key: chapter responses are CDN-cached
+// for a week (s-maxage=604800), so without this a parser change (e.g. the
+// Traditional -> Simplified conversion) would keep serving stale text from the
+// edge for 7 days no matter what the database says. Bump both together.
+const TEXT_VERSION = 2;
 const FREE_CHAPTERS = 3; // Free trial length per book
 const PRICE_MONTHLY = 5; // $/month for unlimited
 const PRICE_ANNUAL = 40; // $/year for unlimited (2 months free)
@@ -345,7 +351,7 @@ async function fetchChapterGutenberg(b, num) {
       try { const r = await window.storage.get(`ch7-gid-${b.id}`); if (r?.value) gid = gidCache[b.id] = r.value; } catch {}
     }
     const q = b.gq || `${b.title} ${b.author}`;
-    const params = new URLSearchParams({ q, ch: String(num) });
+    const params = new URLSearchParams({ q, ch: String(num), v: String(TEXT_VERSION) });
     if (gid) params.set("gid", String(gid));
 
     const ctrl = new AbortController();
