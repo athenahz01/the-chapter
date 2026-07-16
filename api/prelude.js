@@ -12,7 +12,7 @@
 import { hasDb, getExtras, setPrelude } from "./_lib/db.js";
 import { byId } from "./_lib/catalog.js";
 import { getChapter } from "./_lib/gutenberg.js";
-import { getPrelude } from "./_lib/services.js";
+import { getPrelude, cleanModelText } from "./_lib/services.js";
 
 function setCors(req, res) {
   const origin = req.headers.origin || "";
@@ -39,8 +39,15 @@ export default async function handler(req, res) {
     if (hasDb()) {
       const hit = await getExtras(book.id, ch);
       if (hit?.prelude) {
-        res.setHeader("Cache-Control", "public, s-maxage=604800");
-        return res.status(200).json({ ok: true, prelude: hit.prelude, cached: true });
+        // Clean on read as well as on write: preludes cached before the
+        // sanitiser existed still carry model scaffolding like "# Prelude to
+        // Chapter 1", and that would render literally in the email.
+        const clean = cleanModelText(hit.prelude);
+        if (clean) {
+          if (clean !== hit.prelude) { try { await setPrelude(book.id, ch, clean); } catch {} }
+          res.setHeader("Cache-Control", "public, s-maxage=604800");
+          return res.status(200).json({ ok: true, prelude: clean, cached: true });
+        }
       }
     }
 

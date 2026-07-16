@@ -16,7 +16,7 @@
 import { hasDb, query, getExtras, setExtras, setPrelude, setQuote } from "./_lib/db.js";
 import { byId } from "./_lib/catalog.js";
 import { getChapter } from "./_lib/gutenberg.js";
-import { getPrelude, getChapterFallback, getDiscussionQuestions, getQuote, sendEmailDirect } from "./_lib/services.js";
+import { getPrelude, getChapterFallback, getDiscussionQuestions, getQuote, sendEmailDirect, cleanModelText } from "./_lib/services.js";
 import { buildEmailHTML, buildEmailText, chapterLabel, threadHeaders } from "./_lib/email.js";
 
 const FREE_CHAPTERS = 3; // keep in sync with App.jsx
@@ -142,7 +142,7 @@ export default async function handler(req, res) {
         if (Date.now() - started > TIME_BUDGET_MS) break;
         // Cached per (book, chapter) — generated once for the whole cohort.
         let pre = null;
-        try { pre = (await getExtras(book.id, ch.chNum))?.prelude || null; } catch {}
+        try { pre = cleanModelText((await getExtras(book.id, ch.chNum))?.prelude) || null; } catch {}
         if (!pre) {
           pre = await getPrelude(book.title, ch.chNum, ch.text.slice(0, 1200)).catch(() => null);
           if (pre) { try { await setPrelude(book.id, ch.chNum, pre); } catch {} }

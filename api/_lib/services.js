@@ -33,16 +33,31 @@ async function callClaude(payload, timeoutMs) {
   } catch { clearTimeout(timer); return null; }
 }
 
+// Models add scaffolding even when told not to: markdown headers ("# Prelude to
+// Chapter 1"), "Quote:" labels, wrapping quotation marks. That text goes
+// straight into an email, so strip it rather than trusting the prompt.
+export function cleanModelText(out) {
+  if (!out) return null;
+  let t = String(out).replace(/\r\n/g, "\n").trim();
+  t = t.replace(/^\s*#{1,6}\s+.*$/gm, "");                        // markdown headers
+  t = t.replace(/^\s*(?:prelude|quote|line|answer|response)\s*:\s*/gim, ""); // labels
+  t = t.replace(/^\s*[-*]\s+/gm, "");                             // stray bullets
+  t = t.split(/\n{2,}/).map(p => p.trim()).filter(Boolean).join("\n\n").trim();
+  t = t.replace(/^["'\u201c\u201d\u2018\u2019]+|["'\u201c\u201d\u2018\u2019]+$/g, "").trim();
+  return t || null;
+}
+
 export async function getPrelude(title, chNum, snippet) {
   const model = process.env.ANTHROPIC_MODEL_PRELUDE || "claude-haiku-4-5";
-  return callClaude({
+  const out = await callClaude({
     model,
     max_tokens: 300,
     messages: [{
       role: "user",
-      content: `Write a brief, evocative 2-3 sentence prelude for Chapter ${chNum} of "${title}". Set the scene and mood without spoilers. Based on this opening:\n\n${String(snippet).slice(0, 2000)}\n\nWrite ONLY the prelude, no labels or quotes.`,
+      content: `Write a brief, evocative 2-3 sentence prelude for Chapter ${chNum} of "${title}". Set the scene and mood without spoilers. Based on this opening:\n\n${String(snippet).slice(0, 2000)}\n\nWrite ONLY the prelude itself: no title, no markdown, no headings, no labels, no quotation marks.`,
     }],
   }, 10000);
+  return cleanModelText(out);
 }
 
 // The quote card is the artifact that carries the brand into feeds: pick the
@@ -58,12 +73,18 @@ export async function getQuote(title, chNum, text) {
       content: `From Chapter ${chNum} of "${title}" below, choose the single most quotable, striking sentence — the one a reader would screenshot and share. It must be copied EXACTLY, word for word, from the text. Prefer something under 200 characters that stands alone without context. Reply with ONLY the sentence, no quotation marks, no commentary.\n\n${String(text).slice(0, 6000)}`,
     }],
   }, 10000);
-  if (!out) return null;
-  // Trust but verify: the line must actually appear in the chapter.
-  const line = out.trim().replace(/^["'“”‘’]+|["'“”‘’]+$/g, "").trim();
+  const cleaned = cleanModelText(out);
+  if (!cleaned) return null;
+  // Take the first substantial line the model gave us.
+  const line = (cleaned.split("\n").map(l => l.trim()).find(l => l.length >= 15) || "").trim();
   if (!line || line.length < 15 || line.length > 300) return null;
-  const norm = (x) => x.replace(/[\s\u3000]+/g, " ").replace(/[“”‘’]/g, '"').trim();
-  return norm(text).includes(norm(line)) ? line : null;
+  // Trust but verify: the line must genuinely appear in the chapter, or we would
+  // be printing invented words under the author's name on a branded card.
+  // Compare on letters/digits/CJK only, so curly quotes, dashes and spacing
+  // differences don't cause a false rejection.
+  const key = (x) => String(x).toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g, "");
+  const k = key(line);
+  return k.length > 10 && key(text).includes(k) ? line : null;
 }
 
 export async function getChapterFallback(title, author, chNum) {
