@@ -8,6 +8,10 @@
     {
       "source": "/share",
       "destination": "/share.html"
+    },
+    {
+      "source": "/bigread",
+      "destination": "/bigread.html"
     }
   ],
   "functions": {

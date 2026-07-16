@@ -10,6 +10,7 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         app: resolve(__dirname, 'app.html'),
         share: resolve(__dirname, 'share.html'),
+        bigread: resolve(__dirname, 'bigread.html'),
       },
     },
   },
