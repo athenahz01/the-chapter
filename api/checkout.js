@@ -14,7 +14,8 @@
 //   STRIPE_SECRET_KEY      sk_live_... / sk_test_...
 //   STRIPE_PRICE_MONTHLY   price id for $5/mo   (recurring)
 //   STRIPE_PRICE_ANNUAL    price id for $40/yr  (recurring)
-//   STRIPE_PRICE_ALACARTE  price id for $3      (one-time)
+//   STRIPE_PRICE_CIRCLE    price id for $10/mo  (recurring, "Circle Host")
+//   STRIPE_PRICE_ALACARTE  price id for $3      (one-time, legacy)
 //
 // If STRIPE_SECRET_KEY is unset, POST returns { ok:false, reason:"not-configured" }
 // and the frontend falls back to the current free-beta behavior.
@@ -60,6 +61,7 @@ async function stripe(path, params) {
 const PLAN_PRICES = () => ({
   monthly: { price: process.env.STRIPE_PRICE_MONTHLY, mode: "subscription" },
   annual: { price: process.env.STRIPE_PRICE_ANNUAL, mode: "subscription" },
+  circle: { price: process.env.STRIPE_PRICE_CIRCLE, mode: "subscription" },
   alacarte: { price: process.env.STRIPE_PRICE_ALACARTE, mode: "payment" },
 });
 

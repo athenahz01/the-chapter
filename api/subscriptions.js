@@ -64,7 +64,8 @@ export default async function handler(req, res) {
       }
       const row = await upsertSubscription({
         email, bookId, friends, scheduleDays,
-        plan: ["free", "alacarte", "paid", "monthly", "annual"].includes(body.plan) ? body.plan : "free",
+        // "circle" = Circle Host, "community" = Big Read cohort (free, whole book).
+        plan: ["free", "alacarte", "paid", "monthly", "annual", "circle", "community"].includes(body.plan) ? body.plan : "free",
         chaptersPerDelivery: Math.min(5, Math.max(1, body.chaptersPerDelivery | 0 || 1)),
         currentChapter: Math.max(0, body.currentChapter | 0),
         currentPart: Math.max(0, body.currentPart | 0),

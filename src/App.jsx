@@ -50,7 +50,10 @@ const TEXT_VERSION = 2;
 const FREE_CHAPTERS = 3; // Free trial length per book
 const PRICE_MONTHLY = 5; // $/month for unlimited
 const PRICE_ANNUAL = 40; // $/year for unlimited (2 months free)
-const PRICE_ALACARTE = 3; // $/book one-time
+const PRICE_CIRCLE = 10; // $/month "Circle Host" — run private reading circles
+const PRICE_ALACARTE = 3; // $/book one-time (legacy: honoured in code for existing
+                          // subscriptions, but no longer offered in the UI — the
+                          // ladder is deliberately three choices with one obvious middle)
 
 // ─── BOOK CATALOG ───────────────────────────────────────────────
 // Cole's curated list, organized by author. Books with `wsPage` use Wikisource
@@ -684,6 +687,11 @@ function buildEmailText(book, chapters, token) {
 // falls back to English instead of rendering blank. Simplified Chinese.
 const ZH = {
   // nav / shell
+  "Join The Library":"加入图书馆","Become a Circle Host":"成为共读圈主理人",
+  "Plus the monthly Big Read, always free":"另含每月「大共读」，永久免费",
+  "Every book, your schedule, all preludes":"所有书籍，你的节奏，全部导读",
+  "Save 33%, two months free":"省 33%，免费两个月",
+  "Run private reading circles, everyone reads in sync":"创建私人共读圈，大家同步阅读",
   "Chapter {n}":"第 {n} 章","Part {p} of {t}":"第 {p} 部分（共 {t} 部分）","Library":"书库","Inbox":"收件箱","My Books":"我的书","Home":"首页","Install app":"安装应用",
   "Browse Library":"浏览书库","Featured":"精选","All":"全部","Search books, authors…":"搜索书名、作者…",
   // book detail
@@ -1271,7 +1279,10 @@ export default function App() {
     // so a direct read would be frozen at first render — premium users'
     // scheduled deliveries were silently capped at the free-trial limit.
     const curPlan = planRef.current;
-    const unlocked = curPlan==="monthly" || curPlan==="annual" || sub.plan==="alacarte" || sub.plan==="paid";
+    // "circle" is a superset of The Library; "community" is a Big Read cohort
+    // member, who reads the whole book free (it's the acquisition funnel).
+    const unlocked = ["monthly","annual","circle"].includes(curPlan)
+      || ["alacarte","paid","circle","community"].includes(sub.plan);
     const maxCh = unlocked ? b.chapters : FREE_CHAPTERS;
 
     const chNums = [];
@@ -2068,7 +2079,10 @@ export default function App() {
           {/* Plan toggle (not shown on upgrade, premium, or communal readings) */}
           {!isUp && !isPremium && !subModal.reading && (
             <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>
-              {[["free",`Free Trial · ${FREE_CHAPTERS} chapters`,""],["monthly",`$${PRICE_MONTHLY}/month · Unlimited`,"All books, all chapters"],["annual",`$${PRICE_ANNUAL}/year · Save 33%`,"All books · 2 months free"],["alacarte",`$${PRICE_ALACARTE} · This book only`,"One-time, all chapters"]].map(([p,l,sub])=>(
+              {/* Each tier trains desire for the next: the free Big Read teaches
+                  synchronized reading, The Library removes the one-book constraint,
+                  Circle Host hands you the Big Read machinery for your own people. */}
+              {[["free",`Free Trial · ${FREE_CHAPTERS} chapters`,t("Plus the monthly Big Read, always free")],["monthly",`The Library · $${PRICE_MONTHLY}/month`,t("Every book, your schedule, all preludes")],["annual",`The Library · $${PRICE_ANNUAL}/year`,t("Save 33%, two months free")],["circle",`Circle Host · $${PRICE_CIRCLE}/month`,t("Run private reading circles, everyone reads in sync")]].map(([p,l,sub])=>(
                 <button key={p} onClick={()=>setSubModal(m=>({...m,plan:p}))} style={{padding:"10px 14px",border:`1.5px solid ${subModal.plan===p?"#6B1D2A":"#DDD5CA"}`,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:12,background:subModal.plan===p?"#6B1D2A":"#fff",color:subModal.plan===p?"#FAF6F0":"#1A1612",transition:"all .2s",borderRadius:6,textAlign:"left"}}>
                   <span style={{fontWeight:600}}>{l}</span>
                   {sub&&<span style={{display:"block",fontSize:10,opacity:.7,marginTop:1}}>{sub}</span>}
@@ -2199,13 +2213,13 @@ export default function App() {
               {delivering ? "Preparing…" : subModal.reading
                 ? `Join the Reading · Free`
                 : isUp
-                ? (subModal.plan==="monthly"?`★ Subscribe · $${PRICE_MONTHLY}/mo`:subModal.plan==="annual"?`★ Subscribe · $${PRICE_ANNUAL}/yr`:`★ Unlock · $${PRICE_ALACARTE}`)
-                : subModal.plan==="monthly"?`Subscribe · $${PRICE_MONTHLY}/month`
-                : subModal.plan==="annual"?`Subscribe · $${PRICE_ANNUAL}/year`
-                : subModal.plan==="alacarte"?`Unlock This Book · $${PRICE_ALACARTE}`
+                ? (subModal.plan==="circle"?`★ ${t("Become a Circle Host")} · $${PRICE_CIRCLE}/mo`:subModal.plan==="annual"?`★ ${t("Join The Library")} · $${PRICE_ANNUAL}/yr`:`★ ${t("Join The Library")} · $${PRICE_MONTHLY}/mo`)
+                : subModal.plan==="monthly"?`${t("Join The Library")} · $${PRICE_MONTHLY}/month`
+                : subModal.plan==="annual"?`${t("Join The Library")} · $${PRICE_ANNUAL}/year`
+                : subModal.plan==="circle"?`${t("Become a Circle Host")} · $${PRICE_CIRCLE}/month`
                 : t("Start Reading · Free")}
             </button>
-            {(subModal.plan==="monthly"||subModal.plan==="annual"||subModal.plan==="alacarte")&&<p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#8A7E73",textAlign:"center"}}>{t("Payment integration coming soon. Free during beta.")}</p>}
+            {(subModal.plan==="monthly"||subModal.plan==="annual"||subModal.plan==="circle")&&<p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#8A7E73",textAlign:"center"}}>{t("Payment integration coming soon. Free during beta.")}</p>}
             <button className="b bg" style={{textAlign:"center",display:"block"}} onClick={()=>setSubModal(null)}>Cancel</button>
           </div>
         </div></div>;

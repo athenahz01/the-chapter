@@ -87,8 +87,10 @@ export default async function handler(req, res) {
 
       // Public communal readings are the acquisition funnel: free all the
       // way through. Premium and per-book purchases unlock everything else.
-      const premium = ["monthly", "annual"].includes(sub.account_plan)
-        || ["alacarte", "paid"].includes(sub.plan)
+      // Circle Host is a superset of The Library; "community" is a Big Read
+      // cohort member, who reads the whole book free — the funnel is the point.
+      const premium = ["monthly", "annual", "circle"].includes(sub.account_plan)
+        || ["alacarte", "paid", "circle", "community"].includes(sub.plan)
         || (sub.reading_id && sub.reading_public === true);
       const maxCh = premium ? book.chapters : FREE_CHAPTERS;
       const cap = Math.min(maxCh, book.chapters);
