@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Share today's line — The Chapter</title>
+  <meta name="description" content="A line worth keeping, from today's chapter.">
+  <meta property="og:title" content="The Chapter">
+  <meta property="og:description" content="One chapter at a time. A line worth keeping.">
+  <link rel="icon" href="/icons/icon-192.png">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital@0;1&family=DM+Sans:wght@400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#FAF6F0;color:#1A1612;font-family:'DM Sans',sans-serif;
+      min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+    .wrap{max-width:460px;width:100%;text-align:center}
+    .eyebrow{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:#B8964E;margin-bottom:14px}
+    canvas{width:100%;height:auto;border-radius:12px;box-shadow:0 20px 60px rgba(26,22,18,.14);background:#FAF6F0}
+    .row{display:flex;gap:8px;margin-top:16px}
+    button,a.btn{flex:1;padding:13px;border-radius:8px;font-size:14px;font-weight:600;
+      font-family:'DM Sans',sans-serif;cursor:pointer;border:none;text-decoration:none;
+      display:flex;align-items:center;justify-content:center;transition:opacity .15s}
+    .primary{background:#6B1D2A;color:#FAF6F0}
+    .ghost{background:none;border:1px solid #DDD5CA;color:#5A5248}
+    button:hover,a.btn:hover{opacity:.85}
+    .fine{font-size:11px;color:#8A7E73;margin-top:14px}
+    .fine a{color:#6B1D2A}
+    .msg{font-family:'Cormorant Garamond',serif;font-size:17px;color:#8A7E73;padding:40px 0}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="eyebrow" id="eyebrow">Today's line</p>
+    <canvas id="card" width="1080" height="1080" aria-label="Quote card"></canvas>
+    <p class="msg" id="msg" style="display:none">Finding today's line…</p>
+    <div class="row">
+      <button class="primary" id="share">Share</button>
+      <button class="ghost" id="download">⬇ Save image</button>
+    </div>
+    <p class="fine">From <a href="/app" id="booklink">The Chapter</a> · one chapter at a time.
+      <a href="/bigread">Join the Big Read →</a></p>
+  </div>
+
+<script>
+(function () {
+  var qs = new URLSearchParams(location.search);
+  var bookId = qs.get("b") || qs.get("book");
+  var ch = parseInt(qs.get("c") || qs.get("ch"), 10) || 1;
+  var canvas = document.getElementById("card");
+  var msg = document.getElementById("msg");
+  var state = { quote: "", book: "", author: "", ch: ch };
+
+  // Wrap text to a width, shrinking until it fits the plate.
+  function layout(x, text, maxW, startSize, maxLines) {
+    var size = startSize, lines = [];
+    for (;;) {
+      x.font = '400 ' + size + 'px Georgia, "Songti SC", serif';
+      lines = []; var line = "";
+      var words = text.split(/(\s+)/);
+      for (var i = 0; i < words.length; i++) {
+        var w = words[i];
+        var t = line + w;
+        // CJK has no spaces — break per character when a "word" is huge.
+        if (x.measureText(t).width > maxW && line) { lines.push(line.trim()); line = w.trim() ? w : ""; }
+        else line = t;
+      }
+      if (line.trim()) lines.push(line.trim());
+      if (lines.length <= maxLines || size <= 30) break;
+      size -= 3;
+    }
+    return { size: size, lines: lines };
+  }
+
+  function draw() {
+    var S = 1080, x = canvas.getContext("2d");
+    x.fillStyle = "#FAF6F0"; x.fillRect(0, 0, S, S);
+    x.strokeStyle = "#DDD5CA"; x.lineWidth = 3; x.strokeRect(46, 46, S - 92, S - 92);
+    x.textAlign = "center";
+
+    x.fillStyle = "#8A7E73"; x.font = '500 24px Helvetica, Arial, sans-serif';
+    x.fillText("T H E   C H A P T E R", S / 2, 130);
+
+    // Opening quote mark as a piece of ornament.
+    x.fillStyle = "#E4D9C4"; x.font = '400 160px Georgia, serif';
+    x.fillText("“", S / 2, 300);
+
+    var q = layout(x, state.quote || "", S - 220, 62, 8);
+    var blockH = q.lines.length * (q.size * 1.42);
+    var y = (S / 2) - (blockH / 2) + q.size + 30;
+    x.fillStyle = "#1A1612";
+    x.font = 'italic ' + q.size + 'px Georgia, "Songti SC", serif';
+    for (var i = 0; i < q.lines.length; i++) { x.fillText(q.lines[i], S / 2, y); y += q.size * 1.42; }
+
+    x.strokeStyle = "#E8E2DA"; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(S / 2 - 70, y + 26); x.lineTo(S / 2 + 70, y + 26); x.stroke();
+
+    x.fillStyle = "#6B1D2A"; x.font = '400 32px Georgia, "Songti SC", serif';
+    x.fillText(state.book + (state.ch ? "  ·  Chapter " + state.ch : ""), S / 2, y + 84);
+    x.fillStyle = "#8A7E73"; x.font = 'italic 27px Georgia, serif';
+    x.fillText(state.author || "", S / 2, y + 126);
+
+    x.fillStyle = "#B0A79A"; x.font = '400 24px Helvetica, Arial, sans-serif';
+    x.fillText("the-chapter-one.vercel.app", S / 2, S - 96);
+  }
+
+  function fail(t) { canvas.style.display = "none"; msg.style.display = "block"; msg.textContent = t; }
+
+  fetch("/api/quote?book=" + encodeURIComponent(bookId || "") + "&ch=" + ch)
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (!d || !d.ok || !d.quote) return fail("No line for this chapter yet.");
+      state.quote = d.quote; state.book = d.book || ""; state.author = d.author || ""; state.ch = d.ch || ch;
+      document.getElementById("booklink").href = "/app?book=" + encodeURIComponent(bookId || "");
+      draw();
+    })
+    .catch(function () { fail("Couldn't load today's line."); });
+
+  document.getElementById("download").addEventListener("click", function () {
+    var a = document.createElement("a");
+    a.href = canvas.toDataURL("image/png");
+    a.download = "the-chapter-" + (bookId || "line") + "-" + state.ch + ".png";
+    a.click();
+  });
+
+  document.getElementById("share").addEventListener("click", function () {
+    var text = "“" + state.quote + "”\n— " + state.book + ", " + state.author;
+    var url = location.origin + "/bigread";
+    canvas.toBlob(function (blob) {
+      var file = blob ? new File([blob], "the-chapter.png", { type: "image/png" }) : null;
+      // Share the image itself where the browser allows it — that's the artifact.
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], text: text, url: url }).catch(function () {});
+      } else if (navigator.share) {
+        navigator.share({ title: "The Chapter", text: text, url: url }).catch(function () {});
+      } else {
+        window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent(text) + "&url=" + encodeURIComponent(url), "_blank");
+      }
+    }, "image/png");
+  });
+})();
+</script>
+</body>
+</html>

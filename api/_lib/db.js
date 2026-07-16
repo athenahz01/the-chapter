@@ -128,6 +128,8 @@ async function ensureSchema(p) {
     -- Preludes cached per (book, chapter): one generation for the whole
     -- cohort instead of one Claude call per reader.
     ALTER TABLE chapter_extras ADD COLUMN IF NOT EXISTS prelude TEXT;
+    -- The shareable line for each chapter (the quote-card artifact).
+    ALTER TABLE chapter_extras ADD COLUMN IF NOT EXISTS quote TEXT;
     -- Bumping PARSER_VERSION in gutenberg.js invalidates every cached book,
     -- so a parser change (e.g. Traditional -> Simplified) can't serve stale text.
     ALTER TABLE book_cache ADD COLUMN IF NOT EXISTS version INT NOT NULL DEFAULT 1;
@@ -232,7 +234,7 @@ export async function createReading(rd) {
 // ─── Chapter extras (cached discussion questions) ──────────────
 
 export async function getExtras(bookId, chapter) {
-  const r = await query(`SELECT questions, prelude FROM chapter_extras WHERE book_id=$1 AND chapter=$2`, [bookId, chapter]);
+  const r = await query(`SELECT questions, prelude, quote FROM chapter_extras WHERE book_id=$1 AND chapter=$2`, [bookId, chapter]);
   return r.rows[0] || null;
 }
 
@@ -313,5 +315,13 @@ export async function setPrelude(bookId, chapter, prelude) {
     `INSERT INTO chapter_extras (book_id, chapter, prelude) VALUES ($1,$2,$3)
      ON CONFLICT (book_id, chapter) DO UPDATE SET prelude = EXCLUDED.prelude`,
     [bookId, chapter, prelude]
+  );
+}
+
+export async function setQuote(bookId, chapter, quote) {
+  await query(
+    `INSERT INTO chapter_extras (book_id, chapter, quote) VALUES ($1,$2,$3)
+     ON CONFLICT (book_id, chapter) DO UPDATE SET quote = EXCLUDED.quote`,
+    [bookId, chapter, quote]
   );
 }

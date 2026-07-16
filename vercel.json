@@ -4,6 +4,10 @@
     {
       "source": "/app",
       "destination": "/app.html"
+    },
+    {
+      "source": "/share",
+      "destination": "/share.html"
     }
   ],
   "functions": {
@@ -38,6 +42,9 @@
       "maxDuration": 30
     },
     "api/prelude.js": {
+      "maxDuration": 30
+    },
+    "api/quote.js": {
       "maxDuration": 30
     }
   },

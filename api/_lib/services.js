@@ -45,6 +45,27 @@ export async function getPrelude(title, chNum, snippet) {
   }, 10000);
 }
 
+// The quote card is the artifact that carries the brand into feeds: pick the
+// ONE line a stranger would repost. Must be a real, verbatim sentence from the
+// chapter — never paraphrased, or we'd be putting words in the author's mouth.
+export async function getQuote(title, chNum, text) {
+  const model = process.env.ANTHROPIC_MODEL_PRELUDE || "claude-haiku-4-5";
+  const out = await callClaude({
+    model,
+    max_tokens: 150,
+    messages: [{
+      role: "user",
+      content: `From Chapter ${chNum} of "${title}" below, choose the single most quotable, striking sentence — the one a reader would screenshot and share. It must be copied EXACTLY, word for word, from the text. Prefer something under 200 characters that stands alone without context. Reply with ONLY the sentence, no quotation marks, no commentary.\n\n${String(text).slice(0, 6000)}`,
+    }],
+  }, 10000);
+  if (!out) return null;
+  // Trust but verify: the line must actually appear in the chapter.
+  const line = out.trim().replace(/^["'“”‘’]+|["'“”‘’]+$/g, "").trim();
+  if (!line || line.length < 15 || line.length > 300) return null;
+  const norm = (x) => x.replace(/[\s\u3000]+/g, " ").replace(/[“”‘’]/g, '"').trim();
+  return norm(text).includes(norm(line)) ? line : null;
+}
+
 export async function getChapterFallback(title, author, chNum) {
   const model = process.env.ANTHROPIC_MODEL_TEXT || "claude-sonnet-4-5";
   return callClaude({

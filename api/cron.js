@@ -13,10 +13,10 @@
 // Safe to re-run: last_delivery_date guards against double-sends within a
 // day, and each subscription is updated only after its email succeeds.
 
-import { hasDb, query, getExtras, setExtras, setPrelude } from "./_lib/db.js";
+import { hasDb, query, getExtras, setExtras, setPrelude, setQuote } from "./_lib/db.js";
 import { byId } from "./_lib/catalog.js";
 import { getChapter } from "./_lib/gutenberg.js";
-import { getPrelude, getChapterFallback, getDiscussionQuestions, sendEmailDirect } from "./_lib/services.js";
+import { getPrelude, getChapterFallback, getDiscussionQuestions, getQuote, sendEmailDirect } from "./_lib/services.js";
 import { buildEmailHTML, buildEmailText, chapterLabel, threadHeaders } from "./_lib/email.js";
 
 const FREE_CHAPTERS = 3; // keep in sync with App.jsx
@@ -153,6 +153,17 @@ export default async function handler(req, res) {
       // Reading extras: cohort size + shared discussion questions (cached
       // per book+chapter so the whole cohort discusses the same ones).
       const extras = {};
+      // Today's shareable line — cached per (book, chapter) like the prelude, so
+      // the whole cohort gets the SAME line (that's what makes it "today's line")
+      // and we generate it once rather than once per reader.
+      try {
+        let ql = (await getExtras(book.id, chapters[0].chNum))?.quote || null;
+        if (!ql) {
+          ql = await getQuote(book.title, chapters[0].chNum, chapters[0].text).catch(() => null);
+          if (ql) { try { await setQuote(book.id, chapters[0].chNum, ql); } catch {} }
+        }
+        if (ql) extras.quote = ql;
+      } catch { /* the line is a bonus, never a blocker */ }
       if (sub.reading_id) {
         extras.readingTitle = sub.reading_title;
         extras.participants = await countFor(sub.reading_id).catch(() => 0);

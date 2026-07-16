@@ -46,7 +46,7 @@ function links(book, chapters, { origin, token }) {
   };
 }
 
-export function buildEmailHTML(book, chapters, { origin, token, readingTitle, participants, questions }) {
+export function buildEmailHTML(book, chapters, { origin, token, readingTitle, participants, questions, quote }) {
   const { readUrl, manageUrl, unsubUrl } = links(book, chapters, { origin, token });
   const label = chapterLabel(chapters);
   const mins = readMinutes(chapters);
@@ -56,6 +56,17 @@ export function buildEmailHTML(book, chapters, { origin, token, readingTitle, pa
   const readingLine = readingTitle
     ? `<p style="font-size:12px;color:#B8964E;text-transform:uppercase;letter-spacing:2px;margin:0 0 14px">${esc(readingTitle)}${participants > 1 ? ` &nbsp;·&nbsp; ${participants.toLocaleString()} readers` : ""}</p>`
     : `<p style="font-size:12px;color:#B8964E;text-transform:uppercase;letter-spacing:2px;margin:0 0 14px">Your chapter is ready</p>`;
+
+  // The day's line. Nobody reposts an email, but they will repost a beautiful
+  // card of a great sentence — so give every chapter a shareable object, and
+  // put the prompt at the emotional peak: right under the reading.
+  const shareUrl = `${origin}/share?b=${encodeURIComponent(book.id)}&c=${chapters[0].chNum}`;
+  const quoteBlock = quote ? `
+  <div style="margin:34px 0 0;padding:26px 24px;background:#FBF5EC;border:1px solid #EADFC8;border-radius:8px;text-align:center">
+    <p style="font-size:10px;color:#B8964E;text-transform:uppercase;letter-spacing:1.8px;margin:0 0 12px;font-family:Helvetica,sans-serif">Today&rsquo;s line</p>
+    <p style="font-family:Georgia,serif;font-size:19px;line-height:1.65;color:#1A1612;margin:0 0 18px;font-style:italic">&ldquo;${esc(quote)}&rdquo;</p>
+    <a href="${shareUrl}" style="display:inline-block;background:#6B1D2A;color:#FAF6F0;text-decoration:none;padding:11px 26px;border-radius:6px;font-size:13px;font-family:Helvetica,sans-serif">Share today&rsquo;s line &rarr;</a>
+  </div>` : "";
 
   const questionsBlock = (questions && questions.length) ? `
   <div style="text-align:left;background:#FAF6F0;border:1px solid #E8E2DA;border-radius:6px;padding:16px 20px;margin:24px 0 0">
@@ -91,6 +102,7 @@ export function buildEmailHTML(book, chapters, { origin, token, readingTitle, pa
   <div style="max-width:240px;margin:12px auto 0;background:#EDE7DD;border-radius:3px;height:5px"><div style="width:${pct}%;height:5px;background:#B8964E;border-radius:3px"></div></div>
   ${preludeBlock}
   <div style="text-align:left;margin:26px 0 0">${chapterBody}</div>
+  ${quoteBlock}
   ${questionsBlock}
   <div style="margin:34px 0 0;padding-top:24px;border-top:1px solid #E8E2DA">
     <a href="${readUrl}" style="display:inline-block;background:#6B1D2A;color:#FAF6F0;text-decoration:none;padding:12px 30px;border-radius:6px;font-size:14px">Open in the app →</a>
@@ -108,7 +120,7 @@ export function buildEmailHTML(book, chapters, { origin, token, readingTitle, pa
 </div></body></html>`;
 }
 
-export function buildEmailText(book, chapters, { origin, token, readingTitle, participants, questions }) {
+export function buildEmailText(book, chapters, { origin, token, readingTitle, participants, questions, quote }) {
   const { readUrl, unsubUrl } = links(book, chapters, { origin, token });
   const label = chapterLabel(chapters);
   const mins = readMinutes(chapters);
@@ -121,6 +133,7 @@ export function buildEmailText(book, chapters, { origin, token, readingTitle, pa
   if (prelude) out += `\nA prelude to set the scene:\n${prelude}\n`;
   out += `\n${"─".repeat(40)}\n\n`;
   out += chapters.map(ch => (chapters.length > 1 ? `Chapter ${ch.chNum}\n\n` : "") + String(ch.text || "").trim()).join(`\n\n${"─".repeat(40)}\n\n`);
+  if (quote) out += `\n\nToday's line:\n"${quote}"\nShare it: ${origin}/share?b=${encodeURIComponent(book.id)}&c=${chapters[0].chNum}\n`;
   if (questions && questions.length) out += `\n\nTo discuss as you read:\n${questions.map(q => `· ${q}`).join("\n")}\n`;
   out += `\n\n${"─".repeat(40)}\nContinue in the app: ${readUrl}\nUnsubscribe: ${unsubUrl}`;
   return out;
