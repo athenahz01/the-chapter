@@ -13,7 +13,7 @@
 // readings are seeded (see scripts/seed-readings.sql or the auto-seed below)
 // so the homepage funnel stays curated. Private groups are open to anyone.
 
-import { hasDb, listPublicReadings, getReading, getReadingByCode, createReading, participantCount, query } from "./_lib/db.js";
+import { hasDb, listPublicReadings, getReading, getReadingByCode, createReading, participantCount, getCircleByHostToken, getUserPlan, query } from "./_lib/db.js";
 import { byId } from "./_lib/catalog.js";
 
 function setCors(req, res) {
@@ -60,7 +60,26 @@ export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
       await ensureFlagship();
-      const { id, code } = req.query || {};
+      const { id, code, circle } = req.query || {};
+
+      // Host dashboard — keyed on the circle's secret host_token, never on the
+      // host's email (which anyone could guess, handing out the invite link).
+      if (circle) {
+        const c = await getCircleByHostToken(String(circle));
+        if (!c) return res.status(404).json({ ok: false, error: "Unknown circle" });
+        const origin = process.env.PUBLIC_ORIGIN || (req.headers.host ? `https://${req.headers.host}` : "");
+        res.setHeader("Cache-Control", "private, no-store");   // never cache a private dashboard
+        return res.status(200).json({
+          ok: true,
+          circle: {
+            ...shape(c, c.participants),
+            inviteCode: c.invite_code,
+            inviteUrl: `${origin}/app?join=${c.invite_code}`,
+            avgChapter: c.avg_chapter,
+            furthestChapter: c.furthest_chapter,
+          },
+        });
+      }
       if (id) {
         const r = await getReading(id);
         if (!r) return res.status(404).json({ ok: false, error: "Not found" });
@@ -83,6 +102,18 @@ export default async function handler(req, res) {
       const { bookId, title, createdBy } = body || {};
       const book = byId(bookId);
       if (!book) return res.status(400).json({ ok: false, error: "Unknown book" });
+
+      // Circle Host ($10/mo) is what pays for this. Enforce it only once Stripe
+      // is actually configured — until then everything runs free during beta,
+      // exactly like the other paid tiers, rather than gating on a plan nobody
+      // can buy yet.
+      if (process.env.STRIPE_SECRET_KEY) {
+        const plan = createdBy ? await getUserPlan(createdBy) : "free";
+        if (plan !== "circle") {
+          return res.status(402).json({ ok: false, reason: "upgrade-required",
+            error: "Hosting a private circle needs the Circle Host plan." });
+        }
+      }
       const cleanTitle = String(title || `Reading ${book.title} together`).slice(0, 80);
       const deliveryDays = (body.deliveryDays || [1]).filter(d => Number.isInteger(d) && d >= 0 && d <= 6);
       if (!deliveryDays.length) return res.status(400).json({ ok: false, error: "No delivery days" });
@@ -97,6 +128,9 @@ export default async function handler(req, res) {
         reading: shape(r, 0),
         inviteCode: r.invite_code,
         inviteUrl: `${origin}/app?join=${r.invite_code}`,
+        // Keep this: it is the only way back into the circle's dashboard.
+        hostToken: r.host_token,
+        hostUrl: `${origin}/app?circle=${r.host_token}`,
       });
     }
 

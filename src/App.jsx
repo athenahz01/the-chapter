@@ -486,6 +486,17 @@ async function createGroupReading({ bookId, title, deliveryDays, createdBy }) {
   } catch { return { ok: false }; }
 }
 
+// A circle's dashboard is fetched with its secret host token — the only thing
+// that proves you created it (there are no accounts/passwords in this product).
+async function fetchCircle(hostToken) {
+  try {
+    const r = await fetch(`/api/readings?circle=${encodeURIComponent(hostToken)}`);
+    if (!r.ok) return null;
+    const d = await r.json();
+    return d?.ok ? d.circle : null;
+  } catch { return null; }
+}
+
 // Server-cached prelude: generated once per (book, chapter) for the whole
 // cohort instead of one Claude call per reader.
 async function fetchPreludeCached(bookId, ch) {
@@ -687,6 +698,9 @@ function buildEmailText(book, chapters, token) {
 // falls back to English instead of rendering blank. Simplified Chinese.
 const ZH = {
   // nav / shell
+  "Your circles":"你的共读圈","reader":"位读者","readers":"位读者",
+  "Crew is around chapter {n} of {t}":"大家读到第 {n} 章（共 {t} 章）",
+  "Copy invite link":"复制邀请链接","Invite link copied!":"邀请链接已复制！","Open book":"打开书籍",
   "Join The Library":"加入图书馆","Become a Circle Host":"成为共读圈主理人",
   "Plus the monthly Big Read, always free":"另含每月「大共读」，永久免费",
   "Every book, your schedule, all preludes":"所有书籍，你的节奏，全部导读",
@@ -941,6 +955,8 @@ export default function App() {
   const switchLang = (L) => { setLang(L); try { localStorage.setItem("ch7-lang", L); } catch {} };
   const [chPart, setChPart] = useState(1);        // part within a long chapter
   const [chParts, setChParts] = useState(1);      // how many parts this chapter has
+  const [circles, setCircles] = useState([]);     // circles this host created {hostToken,…}
+  const [circleStats, setCircleStats] = useState({}); // hostToken -> live dashboard
   const [finished, setFinished] = useState([]);   // completed books
   const [doneModal, setDoneModal] = useState(null); // completion celebration
   const [chText, setChText] = useState("");
@@ -997,6 +1013,7 @@ export default function App() {
     try { const r = await window.storage.get("ch7-inbox"); if (r?.value) { const x = JSON.parse(r.value); setInbox(x); inboxRef.current = x; } } catch {}
     try { const r = await window.storage.get("ch7-streak"); if (r?.value) setStreak(JSON.parse(r.value)); } catch {}
     try { const r = await window.storage.get("ch7-finished"); if (r?.value) setFinished(JSON.parse(r.value)); } catch {}
+    try { const r = await window.storage.get("ch7-circles"); if (r?.value) setCircles(JSON.parse(r.value)); } catch {}
     try { const r = await window.storage.get("ch7-prefs"); if (r?.value) { const p = JSON.parse(r.value); setTheme(p.t||"sepia"); setFontFam(p.f||"serif"); setFontSize(p.s||19); } } catch {}
     try { const r = await window.storage.get("ch7-email"); if (r?.value) setUserEmail(r.value); } catch {}
     try { const r = await window.storage.get("ch7-plan"); if (r?.value) { setUserPlan(r.value); planRef.current = r.value; } } catch {}
@@ -1243,6 +1260,18 @@ export default function App() {
   const featured = useMemo(()=>BOOKS.filter(b=>b.featured),[]);
   const getSub = (id) => subs.find(s=>s.bookId===id);
   const unreadCount = inbox.filter(x=>!x.read).length;
+
+  // Live circle stats for the host dashboard.
+  useEffect(() => {
+    if (view !== "mybooks" || !circles.length) return;
+    let alive = true;
+    (async () => {
+      const out = {};
+      for (const c of circles) { const d = await fetchCircle(c.hostToken); if (d) out[c.hostToken] = d; }
+      if (alive) setCircleStats(out);
+    })();
+    return () => { alive = false; };
+  }, [view, circles.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Fetch helpers ───
   // Source order matters: Wikisource (curated, per-chapter) → Project
@@ -1927,7 +1956,39 @@ export default function App() {
       {/* ═══ MY BOOKS ═══ */}
       {view==="mybooks"&&(
         <main style={{maxWidth:1060,margin:"0 auto",padding:"24px 20px 60px"}} className="fi">
-          <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:26,fontWeight:700,marginBottom:16}}>My Books</h1>
+          <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:26,fontWeight:700,marginBottom:16}}>{t("My Books")}</h1>
+
+          {/* ═══ CIRCLE HOST DASHBOARD ═══ */}
+          {circles.length>0&&(
+            <div style={{marginBottom:26}}>
+              <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#B8964E",letterSpacing:1.8,textTransform:"uppercase",marginBottom:10}}>{t("Your circles")}</p>
+              {circles.map(c=>{
+                const d=circleStats[c.hostToken]; const b=BOOKS.find(x=>x.id===c.bookId);
+                const total=b?b.chapters:0; const avg=d?.avgChapter||0;
+                return <div key={c.hostToken} style={{background:"#fff",border:"1px solid #E8E2DA",borderRadius:8,padding:"14px 16px",marginBottom:8}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:10,flexWrap:"wrap"}}>
+                    <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:600}}>{c.title||b?.title}</h3>
+                    <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#6B1D2A",fontWeight:600}}>
+                      {d? `${d.participants} ${d.participants===1?t("reader"):t("readers")}` : "…"}
+                    </span>
+                  </div>
+                  {b&&<p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:13,fontStyle:"italic",color:"#8A7E73",marginBottom:8}}>{b.title} · {b.author}</p>}
+                  {d&&total>0&&(<>
+                    <div className="prg" style={{marginBottom:6}}><div className="prg-f" style={{width:`${Math.round((avg/total)*100)}%`}} /></div>
+                    <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A7E73",marginBottom:10}}>
+                      {t("Crew is around chapter {n} of {t}",{n:avg,t:total})}
+                    </p>
+                  </>)}
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    <button className="b bo" style={{fontSize:11}} onClick={()=>{
+                      navigator.clipboard?.writeText(c.inviteUrl).then(()=>showToast(t("Invite link copied!"),"success")).catch(()=>{});
+                    }}>🔗 {t("Copy invite link")}</button>
+                    {b&&<button className="b bg" style={{fontSize:11}} onClick={()=>{setBook(b);nav("book");}}>{t("Open book")}</button>}
+                  </div>
+                </div>;
+              })}
+            </div>
+          )}
           {unsubMode&&(
             <div style={{background:"#FBF3E4",border:"1px solid #E0C89A",borderRadius:8,padding:"14px 18px",marginBottom:16}}>
               <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:600,marginBottom:4}}>{t("Manage your email deliveries")}</p>
@@ -2027,7 +2088,17 @@ export default function App() {
             <button className="b bp" style={{width:"100%",justifyContent:"center",padding:"12px"}} disabled={!grpModal.name.trim()||!grpModal.days.length||grpModal.busy} onClick={async ()=>{
               setGrpModal(m=>({...m,busy:true}));
               const r = await createGroupReading({ bookId:gb.id, title:grpModal.name.trim(), deliveryDays:grpModal.days, createdBy:userEmail||null });
-              if(r?.ok) setGrpModal(m=>({...m,busy:false,result:r}));
+              if(r?.ok){
+                setGrpModal(m=>({...m,busy:false,result:r}));
+                // The host token is the only way back into this circle's
+                // dashboard, so persist it the moment we get it.
+                if(r.hostToken){
+                  const next=[...circles.filter(c=>c.hostToken!==r.hostToken),
+                    {hostToken:r.hostToken, id:r.reading?.id, title:r.reading?.title, bookId:gb.id, inviteUrl:r.inviteUrl}];
+                  setCircles(next);
+                  try{ await window.storage.set("ch7-circles", JSON.stringify(next)); }catch{}
+                }
+              }
               else { setGrpModal(m=>({...m,busy:false})); showToast(r?.reason==="no-db"?"Group readings need the server database, coming soon on this deployment.":"Couldn't create the group, try again.","error"); }
             }}>{grpModal.busy?t("Creating…"):t("Create group & get invite link")}</button>
             <button className="b bg" style={{textAlign:"center",display:"block",marginTop:6}} onClick={()=>setGrpModal(null)}>{t("Cancel")}</button>

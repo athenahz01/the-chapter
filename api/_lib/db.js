@@ -136,6 +136,10 @@ async function ensureSchema(p) {
     -- Long chapters go out as "Part 1 of 2" across deliveries, so the progress
     -- pointer is (current_chapter, current_part) rather than a chapter alone.
     ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS current_part INT NOT NULL DEFAULT 0;
+    -- A circle's host dashboard is reached with a secret token, not the host's
+    -- email: email is guessable, and guessing one would hand out the private
+    -- invite link. Same threat model as subscription tokens.
+    ALTER TABLE readings ADD COLUMN IF NOT EXISTS host_token TEXT;
   `);
 }
 
@@ -219,16 +223,36 @@ export async function participantCount(readingId) {
 
 export async function createReading(rd) {
   const inviteCode = rd.isPublic ? null : newToken().slice(0, 10);
+  const hostToken = rd.isPublic ? null : newToken();   // secret: opens the host dashboard
   const id = rd.id || `${rd.bookId}-${newToken().slice(0, 6).toLowerCase()}`;
   const r = await query(
-    `INSERT INTO readings (id, book_id, title, blurb, start_date, delivery_days, is_public, invite_code, created_by)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+    `INSERT INTO readings (id, book_id, title, blurb, start_date, delivery_days, is_public, invite_code, created_by, host_token)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
      ON CONFLICT (id) DO NOTHING
      RETURNING *`,
     [id, rd.bookId, rd.title, rd.blurb || null, rd.startDate || new Date(),
-     rd.deliveryDays || [1, 2, 3, 4, 5], rd.isPublic !== false, inviteCode, rd.createdBy || null]
+     rd.deliveryDays || [1, 2, 3, 4, 5], rd.isPublic !== false, inviteCode, rd.createdBy || null, hostToken]
   );
   return r.rows[0] || (await getReading(id));
+}
+
+// ─── Circle Host dashboard ─────────────────────────────────────
+// Reached with the circle's host_token. Returns the circle plus how the crew is
+// doing — counts and progress only, never member emails: the host is running a
+// book club, not administering an address list.
+export async function getCircleByHostToken(hostToken) {
+  const r = await query(
+    `SELECT r.*,
+            COUNT(s.id) FILTER (WHERE s.paused = FALSE)::int AS participants,
+            COALESCE(ROUND(AVG(s.current_chapter) FILTER (WHERE s.paused = FALSE))::int, 0) AS avg_chapter,
+            COALESCE(MAX(s.current_chapter), 0)::int AS furthest_chapter
+       FROM readings r
+       LEFT JOIN subscriptions s ON s.reading_id = r.id
+      WHERE r.host_token = $1
+      GROUP BY r.id`,
+    [hostToken]
+  );
+  return r.rows[0] || null;
 }
 
 // ─── Chapter extras (cached discussion questions) ──────────────
