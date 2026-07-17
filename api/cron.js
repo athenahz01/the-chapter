@@ -17,7 +17,7 @@ import { hasDb, query, getExtras, setExtras, setPrelude, setQuote } from "./_lib
 import { byId } from "./_lib/catalog.js";
 import { getChapter } from "./_lib/gutenberg.js";
 import { getPrelude, getChapterFallback, getDiscussionQuestions, getQuote, sendEmailDirect, cleanModelText } from "./_lib/services.js";
-import { buildEmailHTML, buildEmailText, chapterLabel, threadHeaders } from "./_lib/email.js";
+import { buildEmailHTML, buildEmailText, chapterLabel, threadHeaders, isCJK } from "./_lib/email.js";
 
 const FREE_CHAPTERS = 3; // keep in sync with App.jsx
 const TIME_BUDGET_MS = 50_000; // stay under the 60s function ceiling
@@ -187,7 +187,11 @@ export default async function handler(req, res) {
       const unsubscribeUrl = `${origin}/api/unsubscribe?token=${encodeURIComponent(sub.token)}`;
       const result = await sendEmailDirect({
         to: recipients,
-        subject: `📖 Your chapter is ready — ${book.title}, ${chapterLabel(chapters)}`,
+        // The subject follows the chapter's language too — an English subject
+        // over Chinese prose is the first thing the reader sees getting it wrong.
+        subject: isCJK(chapters)
+          ? `📖 今日章节已送达 — ${book.title}，${chapterLabel(chapters, true)}`
+          : `📖 Your chapter is ready — ${book.title}, ${chapterLabel(chapters)}`,
         html: buildEmailHTML(book, chapters, { origin, token: sub.token, ...extras }),
         text: buildEmailText(book, chapters, { origin, token: sub.token, ...extras }),
         unsubscribeUrl,

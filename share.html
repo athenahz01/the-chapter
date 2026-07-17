@@ -7,12 +7,24 @@
   <meta name="description" content="A line worth keeping, from today's chapter.">
   <meta property="og:title" content="The Chapter">
   <meta property="og:description" content="One chapter at a time. A line worth keeping.">
+  <!-- This is the page people are asked to share, and it had no preview image —
+       so every link posted of it rendered as a bare grey rectangle. Static card
+       for now; the honest fix is rendering the quote card server-side per URL. -->
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://the-chapter-one.vercel.app/og-image.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="The Chapter">
+  <meta name="twitter:description" content="One chapter at a time. A line worth keeping.">
+  <meta name="twitter:image" content="https://the-chapter-one.vercel.app/og-image.jpg">
   <link rel="icon" href="/icons/icon-192.png">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital@0;1&family=DM+Sans:wght@400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
+    /* dvh, not vh: iOS Safari's collapsing toolbar makes 100vh taller than the
+       visible viewport, which crops the card on exactly the phones this page
+       is opened on. */
     body{background:#FAF6F0;color:#1A1612;font-family:'DM Sans',sans-serif;
-      min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+      min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px}
     .wrap{max-width:460px;width:100%;text-align:center}
     .eyebrow{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:#B8964E;margin-bottom:14px}
     canvas{width:100%;height:auto;border-radius:12px;box-shadow:0 20px 60px rgba(26,22,18,.14);background:#FAF6F0}
@@ -23,6 +35,9 @@
     .primary{background:#6B1D2A;color:#FAF6F0}
     .ghost{background:none;border:1px solid #DDD5CA;color:#5A5248}
     button:hover,a.btn:hover{opacity:.85}
+    button:active,a.btn:active{transform:translateY(1px) scale(.985)}
+    button:focus-visible,a:focus-visible{outline:2px solid #6B1D2A;outline-offset:3px;border-radius:8px}
+    @media (prefers-reduced-motion: reduce){*{transition-duration:.01ms !important;animation-duration:.01ms !important}}
     .fine{font-size:11px;color:#8A7E73;margin-top:14px}
     .fine a{color:#6B1D2A}
     .msg{font-family:'Cormorant Garamond',serif;font-size:17px;color:#8A7E73;padding:40px 0}

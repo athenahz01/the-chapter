@@ -100,17 +100,55 @@
       background: var(--accent); color: var(--bg);
       font-family: var(--sans); font-size: 13px; font-weight: 500;
       padding: 9px 20px; border-radius: 6px; border: none; cursor: pointer;
-      text-decoration: none; transition: all .2s; letter-spacing: .2px;
+      text-decoration: none; letter-spacing: .2px;
+      /* Animate only transform/opacity/colour — `all` also transitions layout
+         properties, which is what makes buttons feel gummy under the cursor. */
+      transition: background .2s ease, transform .12s ease, box-shadow .2s ease;
     }
-    .btn-primary:hover { background: #8B2E3D; transform: translateY(-1px); }
+    .btn-primary:hover { background: #8B2E3D; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(107,29,42,.18); }
+    /* Pressed feedback: without it a click has no physical answer. */
+    .btn-primary:active { transform: translateY(1px) scale(.985); box-shadow: none; }
     .btn-outline {
       display: inline-flex; align-items: center; gap: 6px;
       background: transparent; color: var(--fg);
       font-family: var(--sans); font-size: 13px; font-weight: 500;
       padding: 9px 20px; border-radius: 6px; border: 1.5px solid var(--border);
-      cursor: pointer; text-decoration: none; transition: all .2s;
+      cursor: pointer; text-decoration: none;
+      transition: border-color .2s ease, color .2s ease, transform .12s ease;
     }
     .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-outline:active { transform: translateY(1px) scale(.985); }
+
+    /* One visible focus ring for every interactive element on the page.
+       Keyboard users had nothing to follow before this. */
+    a:focus-visible, button:focus-visible {
+      outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px;
+    }
+
+    .skip-link {
+      position: absolute; left: 12px; top: -60px; z-index: 200;
+      background: var(--accent); color: var(--bg);
+      font-family: var(--sans); font-size: 13px; font-weight: 600;
+      padding: 10px 18px; border-radius: 0 0 6px 6px; text-decoration: none;
+      transition: top .18s ease;
+    }
+    .skip-link:focus { top: 0; }
+
+    /* Stop headlines dropping a single orphaned word onto the last line. */
+    h1, h2, h3, .section-header p, .tier-name { text-wrap: balance; }
+    /* Prices and counts shouldn't jitter as digits change. */
+    .price, .flagship-stats { font-variant-numeric: tabular-nums; }
+
+    /* Respect the OS setting. The reveal animations below are decorative, and
+       for anyone with vestibular sensitivity they are not a nice-to-have to
+       switch off. */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important; scroll-behavior: auto !important;
+      }
+      .reveal { opacity: 1 !important; transform: none !important; }
+    }
 
     /* ─── HERO ─── */
     .hero {
@@ -605,6 +643,10 @@
 </head>
 <body>
 
+  <!-- First tab stop. Sighted mouse users never see it; keyboard and screen
+       reader users would otherwise tab through the whole nav on every page. -->
+  <a href="#main" class="skip-link">Skip to content</a>
+
   <!-- HEADER -->
   <header>
     <div class="inner">
@@ -618,6 +660,8 @@
       </nav>
     </div>
   </header>
+
+  <main id="main">
 
   <!-- HERO -->
   <section class="hero">
@@ -920,12 +964,15 @@
   </section>
 
   <!-- FOOTER -->
+  </main>
+
   <footer>
     <p class="logo-foot">The Chapter</p>
     <p>Classic literature delivered to your inbox, chapter by chapter.<br>
     Every text in the public domain. A prelude sets the scene for every chapter.</p>
     <p style="margin-top:12px">
-      <a href="/app">Open App</a> · 
+      <a href="/app">Open App</a> ·
+      <a href="/bigread">The Big Read</a> ·
       <a href="mailto:cole@whetstoneadvisory.com">Contact</a>
     </p>
   </footer>
