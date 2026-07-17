@@ -702,6 +702,14 @@ const ZH = {
   "Crew is around chapter {n} of {t}":"大家读到第 {n} 章（共 {t} 章）",
   "Copy invite link":"复制邀请链接","Invite link copied!":"邀请链接已复制！","Open book":"打开书籍",
   "Join The Library":"加入图书馆","Become a Circle Host":"成为共读圈主理人",
+  // plan checkout modal
+  "The Library":"图书馆","Circle Host":"共读圈主理人",
+  "You're joining":"你正在加入","per month":"每月","per year":"每年",
+  "Chapters are delivered here. No password to remember.":"章节会送到这里。无需记住密码。",
+  "Continue to payment":"前往支付","Opening checkout…":"正在打开支付页面…","Not now":"暂不",
+  "Enter a valid email address.":"请输入有效的邮箱地址。",
+  "Couldn't reach checkout. Please try again.":"无法连接支付页面，请重试。",
+  "Secure checkout by Stripe · cancel anytime":"由 Stripe 提供安全支付 · 随时取消",
   "Plus the monthly Big Read, always free":"另含每月「大共读」，永久免费",
   "Every book, your schedule, all preludes":"所有书籍，你的节奏，全部导读",
   "Save 33%, two months free":"省 33%，免费两个月",
@@ -959,6 +967,11 @@ export default function App() {
   const [circleStats, setCircleStats] = useState({}); // hostToken -> live dashboard
   const [finished, setFinished] = useState([]);   // completed books
   const [doneModal, setDoneModal] = useState(null); // completion celebration
+  // Buying a plan is an *account* decision, not a book decision. The plan ladder
+  // used to live only inside a book's subscribe modal, so there was no way to
+  // join The Library — or become a Circle Host — without first pretending to
+  // want a particular book. This modal is the direct order path.
+  const [planModal, setPlanModal] = useState(null); // {plan, email}
   const [chText, setChText] = useState("");
   const [chCache, setChCache] = useState({});
   const [preCache, setPreCache] = useState({});
@@ -1067,9 +1080,15 @@ export default function App() {
     if (checkout === "success" && sessionId) {
       (async () => {
         const d = await verifyCheckout(sessionId);
-        if (d?.ok && (d.plan === "monthly" || d.plan === "annual")) {
+        // `circle` must be here. The server records it in user_plans, but if the
+        // client doesn't mirror it into local plan state the Circle Host comes
+        // back from a successful $10 payment still locked out of hosting — paid,
+        // and told nothing. Any plan the server can sell must be handled here.
+        if (d?.ok && (d.plan === "monthly" || d.plan === "annual" || d.plan === "circle")) {
           svPlan(d.plan);
-          showToast("★ Premium activated. All books, all chapters. Thank you!", "success");
+          showToast(d.plan === "circle"
+            ? "★ Circle Host active. You can start a reading circle from Your circles."
+            : "★ The Library is open. Every book, every chapter. Thank you.", "success");
         } else if (d?.ok && d.plan === "alacarte" && d.bookId) {
           try {
             // Read subs straight from storage — state may not be hydrated yet.
@@ -1158,6 +1177,18 @@ export default function App() {
     }
 
     const email = params.get("email");
+
+    // ─── Plan deep-link (?plan=monthly|annual|circle) ───
+    // The landing page's pricing CTAs carry the chosen plan here so the choice
+    // survives the click. Previously every pricing button dropped you in the
+    // library with the plan forgotten, which is why nobody could find checkout.
+    const wantPlan = params.get("plan");
+    if (["monthly", "annual", "circle"].includes(wantPlan)) {
+      setPlanModal({ plan: wantPlan, email: email || userEmail || "" });
+      window.history.replaceState({}, "", window.location.pathname);
+      return;
+    }
+
     const bookId = params.get("book");
     if (bookId) {
       const b = BOOKS.find(x => x.id === bookId);
@@ -1638,6 +1669,20 @@ export default function App() {
               </button>
             ))}
             {delivering && <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#B8964E"}}>📧</span>}
+            {/* A standing way to buy. Upgrading used to be possible only after
+                you'd burned through a book's 3 free chapters — the one moment
+                you're least inclined to pay. */}
+            {!["monthly","annual","circle"].includes(userPlan) && (
+              <button className="b bp" style={{fontSize:11,whiteSpace:"nowrap",padding:"6px 12px"}}
+                onClick={()=>setPlanModal({plan:"monthly",email:userEmail||""})}>
+                {t("Join The Library")}
+              </button>
+            )}
+            {["monthly","annual","circle"].includes(userPlan) && (
+              <span title={userPlan==="circle"?t("Circle Host"):t("The Library")} style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#B8964E",whiteSpace:"nowrap",letterSpacing:.5}}>
+                ★ {userPlan==="circle"?t("Circle Host"):t("The Library")}
+              </span>
+            )}
             {installEvt&&<button className="b bg" style={{fontSize:11,color:"#6B1D2A",border:"1px solid #E0C89A",borderRadius:14}} title="Install The Chapter as an app" onClick={async ()=>{
               installEvt.prompt();
               const { outcome } = await installEvt.userChoice.catch(()=>({outcome:"dismissed"}));
@@ -2119,6 +2164,61 @@ export default function App() {
         </div></div>;
       })()}
 
+      {/* ─── Plan checkout: the direct order path ───
+          Reached from the landing pricing cards (/app?plan=…) and the header.
+          No book required — you are buying access, not a title. */}
+      {planModal&&(()=>{
+        const PLANS={
+          monthly:{name:t("The Library"),price:`$${PRICE_MONTHLY}`,per:t("per month"),blurb:t("Every book, your schedule, all preludes")},
+          annual:{name:t("The Library"),price:`$${PRICE_ANNUAL}`,per:t("per year"),blurb:t("Save 33%, two months free")},
+          circle:{name:t("Circle Host"),price:`$${PRICE_CIRCLE}`,per:t("per month"),blurb:t("Run private reading circles, everyone reads in sync")},
+        };
+        const P=PLANS[planModal.plan]; if(!P) return null;
+        const email=(planModal.email||"").trim();
+        const emailOk=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+        const go=async()=>{
+          if(!emailOk){setPlanModal(m=>({...m,err:t("Enter a valid email address.")}));return;}
+          setPlanModal(m=>({...m,busy:true,err:null}));
+          const co=await startCheckout(planModal.plan,email,null);
+          if(co?.ok&&co.url){ svEmail(email); window.location.href=co.url; }
+          else setPlanModal(m=>({...m,busy:false,err:t("Couldn't reach checkout. Please try again.")}));
+        };
+        return <div className="mod-bg" onClick={e=>e.target===e.currentTarget&&!planModal.busy&&setPlanModal(null)}>
+          <div className="mod" style={{maxWidth:400}}>
+            <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,letterSpacing:2,textTransform:"uppercase",color:"#B8964E",marginBottom:6}}>{t("You're joining")}</p>
+            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:600,lineHeight:1.15}}>{P.name}</h2>
+            <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,color:"#5A5248",marginTop:6}}>
+              <span style={{fontWeight:600,color:"#1A1612"}}>{P.price}</span> {P.per} · {P.blurb}
+            </p>
+
+            {/* Switch tier without leaving — changing your mind shouldn't mean starting over. */}
+            <div style={{display:"flex",gap:6,margin:"16px 0"}}>
+              {["monthly","annual","circle"].map(p=>(
+                <button key={p} onClick={()=>setPlanModal(m=>({...m,plan:p,err:null}))} style={{flex:1,padding:"8px 6px",fontSize:11,fontFamily:"'DM Sans',sans-serif",fontWeight:600,cursor:"pointer",borderRadius:6,transition:"all .2s",
+                  border:`1.5px solid ${planModal.plan===p?"#6B1D2A":"#DDD5CA"}`,background:planModal.plan===p?"#6B1D2A":"#fff",color:planModal.plan===p?"#FAF6F0":"#5A5248"}}>
+                  {p==="monthly"?`$${PRICE_MONTHLY}/mo`:p==="annual"?`$${PRICE_ANNUAL}/yr`:`$${PRICE_CIRCLE}/mo`}
+                  <span style={{display:"block",fontSize:9,fontWeight:400,opacity:.75,marginTop:2}}>{p==="circle"?t("Circle Host"):t("The Library")}</span>
+                </button>
+              ))}
+            </div>
+
+            <label style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:500,display:"block",marginBottom:4}}>{t("Your email")}</label>
+            <input value={planModal.email||""} type="email" placeholder="you@email.com" autoFocus
+              onChange={e=>setPlanModal(m=>({...m,email:e.target.value,err:null}))}
+              onKeyDown={e=>e.key==="Enter"&&go()} />
+            <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A7E73",marginTop:6}}>{t("Chapters are delivered here. No password to remember.")}</p>
+
+            {planModal.err&&<p role="alert" style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#6B1D2A",marginTop:10}}>{planModal.err}</p>}
+
+            <button className="b bp" disabled={planModal.busy} style={{width:"100%",justifyContent:"center",padding:12,marginTop:14,opacity:planModal.busy?.6:1}} onClick={go}>
+              {planModal.busy?t("Opening checkout…"):t("Continue to payment")}
+            </button>
+            <button className="b bg" style={{display:"block",margin:"8px auto 0"}} onClick={()=>!planModal.busy&&setPlanModal(null)}>{t("Not now")}</button>
+            <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:"#8A7E73",textAlign:"center",marginTop:10}}>{t("Secure checkout by Stripe · cancel anytime")}</p>
+          </div>
+        </div>;
+      })()}
+
       {subModal&&(()=>{
         const wb=BOOKS.find(x=>x.id===subModal.bookId); if(!wb) return null;
         const isUp = subModal.isUpgrade;
@@ -2242,7 +2342,10 @@ export default function App() {
                 return;
               }
 
-              const paidPlan = ["monthly","annual","alacarte"].includes(subModal.plan);
+              // `circle` belongs here: without it, choosing Circle Host skipped
+              // Stripe entirely and quietly enrolled the reader on the free path
+              // — the tier was visible, selectable, and inert.
+              const paidPlan = ["monthly","annual","circle","alacarte"].includes(subModal.plan);
 
               // Real payment path — only when Stripe is configured on the
               // server. The subscription (schedule + Chapter 1) is created
