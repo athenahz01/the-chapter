@@ -117,7 +117,11 @@ export default async function handler(req, res) {
       // Record server-side so the cron honors the paid plan. Skips silently
       // when no DB — the frontend still unlocks locally from this response.
       if (hasDb() && email) {
-        if (plan === "monthly" || plan === "annual") {
+        // "circle" MUST be recorded here. It is an account-level plan like the
+        // others, and it is also what /api/readings checks before letting
+        // someone host a circle — miss it and a paying Circle Host gets charged
+        // and then locked out of the exact feature they just bought.
+        if (plan === "monthly" || plan === "annual" || plan === "circle") {
           await setUserPlan(email, plan, sid);
         } else if (plan === "alacarte" && bookId) {
           await query(
