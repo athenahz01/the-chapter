@@ -113,6 +113,7 @@ export default async function handler(req, res) {
     const zh = isZh(book);
     const act = String(req.query?.do || "");
     let note = "";
+    let confirmComplete = false;
 
     if (act === "pause" && !sub.paused) {
       sub = (await patchSubByToken(token, { paused: true })) || sub;
@@ -126,6 +127,26 @@ export default async function handler(req, res) {
       if (c) {
         sub = (await patchSubByToken(token, { scheduleDays: c.days })) || sub;
         note = T(zh, `Cadence changed to: ${c.en.toLowerCase()}.`, `投递节奏已改为：${c.zh}。`);
+      }
+    } else if (act === "skip") {
+      // Skip: give up on the current chapter and let tomorrow's arrive instead.
+      const total = byId(sub.book_id)?.chapters || 0;
+      const next = Math.min((sub.current_chapter || 0) + 1, total);
+      if (next !== sub.current_chapter) {
+        sub = (await patchSubByToken(token, { currentChapter: next, currentPart: 0 })) || sub;
+        note = T(zh, `Skipped ahead — chapter ${next + 1} is next.`, `已跳过 — 下一章为第 ${next + 1} 章。`);
+      }
+    } else if (act === "complete") {
+      // Unlike pause and cadence, this one can't be undone in a tap: it jumps
+      // to the last chapter and stops delivery. So it asks first — a link
+      // prefetch or a mis-tap shouldn't be able to end someone's book.
+      if (req.query?.confirm === "1") {
+        const total = byId(sub.book_id)?.chapters || 0;
+        sub = (await patchSubByToken(token, { currentChapter: total, currentPart: 0, paused: true })) || sub;
+        note = T(zh, "Marked complete. Deliveries stopped — your finish is recorded.",
+                     "已标记为读完。投递已停止 — 你的完成记录已保存。");
+      } else {
+        confirmComplete = true;
       }
     }
 
@@ -157,6 +178,20 @@ export default async function handler(req, res) {
           `<a class="opt ${curKey === k ? "on" : ""}" href="${link(`do=cadence&v=${k}`)}">${T(zh, c.en, c.zh)}</a>`
         ).join("")}
       </div>
+
+      <p class="lab">${T(zh, "This chapter", "本章")}</p>
+      ${confirmComplete ? `
+      <p class="note">${T(zh,
+        `Mark <em>${esc(title)}</em> as finished? This jumps to the end and stops delivery.`,
+        `确定把《${esc(title)}》标记为已读完吗？这会跳到最后一章并停止投递。`)}</p>
+      <div class="row">
+        <a class="opt on" href="${link("do=complete&confirm=1")}">${T(zh, "Yes, I've finished it", "是的，我读完了")}</a>
+        <a class="opt" href="${link("x=1")}">${T(zh, "Cancel", "取消")}</a>
+      </div>` : `
+      <div class="row">
+        <a class="opt" href="${link("do=skip")}">${T(zh, "Skip it", "跳过本章")}</a>
+        <a class="opt" href="${link("do=complete")}">${T(zh, "Mark book complete", "标记读完")}</a>
+      </div>`}
 
       <a class="btn" href="/app?book=${encodeURIComponent(sub.book_id)}">${T(zh, "Open in the app", "在应用中打开")}</a>
       <p class="fine">

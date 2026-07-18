@@ -283,6 +283,10 @@ export async function patchSubByToken(token, fields) {
     chaptersPerDelivery: "chapters_per_delivery",
     paused: "paused",
     plan: "plan",
+    // Skip / mark-complete move the reader's place, so the manage panel needs
+    // to be able to write it. current_part resets with the chapter.
+    currentChapter: "current_chapter",
+    currentPart: "current_part",
   };
   const sets = [], vals = [];
   for (const [k, col] of Object.entries(allowed)) {

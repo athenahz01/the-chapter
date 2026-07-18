@@ -705,6 +705,7 @@ const ZH = {
   // plan checkout modal
   "The Library":"图书馆","Circle Host":"共读圈主理人",
   "You're joining":"你正在加入","per month":"每月","per year":"每年",
+  "Your free trial covers the first {n} chapters. The Library opens the rest — every book, every chapter.":"免费试读包含前 {n} 章。加入图书馆，即可读完全部 — 每一本书，每一章。",
   "Chapters are delivered here. No password to remember.":"章节会送到这里。无需记住密码。",
   "Continue to payment":"前往支付","Opening checkout…":"正在打开支付页面…","Not now":"暂不",
   "Enter a valid email address.":"请输入有效的邮箱地址。",
@@ -1290,6 +1291,23 @@ export default function App() {
   }),[search,genre]);
   const featured = useMemo(()=>BOOKS.filter(b=>b.featured),[]);
   const getSub = (id) => subs.find(s=>s.bookId===id);
+
+  // Is this chapter readable on this plan?
+  //
+  // The trial was only ever enforced on *delivery* — the reader itself had no
+  // gate at all, so any free reader could open the chapter list and read all 135
+  // chapters of Moby-Dick while the landing page sold "first 3 chapters free,
+  // then $5/mo for unlimited". Delivered chapters stay readable forever
+  // (they're already in the inbox and were paid for by the plan at the time),
+  // and Big Read cohort members read their book free start to finish.
+  const chapterUnlocked = (b, num) => {
+    const s = getSub(b.id);
+    const prem = ["monthly","annual","circle"].includes(planRef.current)
+      || ["alacarte","paid","circle","community"].includes(s?.plan);
+    if (prem) return true;
+    if (num <= FREE_CHAPTERS) return true;
+    return num <= (s?.currentChapter || 0);   // already delivered — never take it back
+  };
   const unreadCount = inbox.filter(x=>!x.read).length;
 
   // Live circle stats for the host dashboard.
@@ -1488,7 +1506,12 @@ export default function App() {
       if(sub.serverManaged) continue;
       const b = BOOKS.find(x=>x.id===sub.bookId);
       if(!b || sub.currentChapter>=b.chapters) continue;
-      const prem = planRef.current==="monthly" || planRef.current==="annual" || sub.plan==="alacarte" || sub.plan==="paid";
+      // Keep this in step with `unlocked` in deliverChapters — the two used to
+      // disagree, and this copy was missing "circle" and "community": a paying
+      // Circle Host, and a Big Read cohort member, both silently stopped
+      // receiving chapters at the free-trial cap.
+      const prem = ["monthly","annual","circle"].includes(planRef.current)
+        || ["alacarte","paid","circle","community"].includes(sub.plan);
       const maxCh = prem ? b.chapters : FREE_CHAPTERS;
       if(sub.currentChapter>=maxCh) continue;
       if(!sub.scheduleDays?.includes(today)) continue;
@@ -1520,6 +1543,14 @@ export default function App() {
 
   // ─── Read chapter in app ───
   const readCh = async (b,num,part=1) => {
+    // One gate, here — readCh has six call sites (chapter list, Next →, inbox,
+    // deep links from email), and gating each of them is how a paywall ends up
+    // with a hole in it.
+    if (!chapterUnlocked(b, num)) {
+      setBook(b); nav("book");
+      setPlanModal({ plan:"monthly", email:userEmail||"", lockedTitle:b.title, lockedCh:num });
+      return;
+    }
     setBook(b); setChIdx(num); setChPart(part); setChParts(1); setChText(""); setAiPre(""); tts.stop(); setTextSrc(""); nav("reader"); recordRead();
     const k=part>1?`${b.id}-${num}-p${part}`:`${b.id}-${num}`;
     // Load prelude in background (non-blocking)
@@ -2185,6 +2216,18 @@ export default function App() {
         };
         return <div className="mod-bg" onClick={e=>e.target===e.currentTarget&&!planModal.busy&&setPlanModal(null)}>
           <div className="mod" style={{maxWidth:400}}>
+            {/* Say why the door closed. A paywall that appears without a reason
+                reads as a bug; one that names the chapter reads as an offer. */}
+            {planModal.lockedTitle && (
+              <div style={{background:"#FBF5EC",border:"1px solid #E0C89A",borderRadius:8,padding:"12px 16px",marginBottom:16}}>
+                <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:12,color:"#6B1D2A",fontWeight:600,marginBottom:2}}>
+                  {t("Chapter {n}", { n: planModal.lockedCh })} · {planModal.lockedTitle}
+                </p>
+                <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:11,color:"#8A7E73"}}>
+                  {t("Your free trial covers the first {n} chapters. The Library opens the rest — every book, every chapter.", { n: FREE_CHAPTERS })}
+                </p>
+              </div>
+            )}
             <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,letterSpacing:2,textTransform:"uppercase",color:"#B8964E",marginBottom:6}}>{t("You're joining")}</p>
             <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:600,lineHeight:1.15}}>{P.name}</h2>
             <p style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,color:"#5A5248",marginTop:6}}>
