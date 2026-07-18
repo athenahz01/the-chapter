@@ -33,6 +33,9 @@
     "api/unsubscribe.js": {
       "maxDuration": 10
     },
+    "api/manage.js": {
+      "maxDuration": 10
+    },
     "api/checkout.js": {
       "maxDuration": 15
     },

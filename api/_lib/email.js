@@ -57,6 +57,10 @@ const ZH = {
   "Sent by The Chapter · Classic literature, chapter by chapter": "由 The Chapter 发送 · 经典文学，一章一章",
   "Manage subscriptions": "管理订阅",
   "Unsubscribe": "退订",
+  "Reading too fast?": "节奏太快？",
+  "Pause delivery": "暂停投递",
+  "Change cadence": "调整频率",
+  "Delivery settings": "投递设置",
   "of": "共",
   "about": "约",
   "complete": "已读",
@@ -106,9 +110,15 @@ function statsSegments(book, chapters, mins, pct, cjk) {
 
 function links(book, chapters, { origin, token }) {
   const t = token ? `&token=${encodeURIComponent(token)}` : "";
+  const tok = token ? encodeURIComponent(token) : "";
   return {
     readUrl: `${origin}/app?read=${encodeURIComponent(book.id)}.${chapters[0].chNum}${t}`,
-    manageUrl: `${origin}/app`,
+    // Settings used to point at /app — which meant "manage your delivery" only
+    // worked on the device you first subscribed from, since identity lives in
+    // localStorage. The token works anywhere, so the controls now do too.
+    manageUrl: token ? `${origin}/api/manage?token=${tok}` : `${origin}/app`,
+    pauseUrl: token ? `${origin}/api/manage?token=${tok}&do=pause` : `${origin}/app`,
+    cadenceUrl: token ? `${origin}/api/manage?token=${tok}#cadence` : `${origin}/app`,
     unsubUrl: token
       ? `${origin}/api/unsubscribe?token=${encodeURIComponent(token)}`
       : `${origin}/app#unsubscribe`,
@@ -116,7 +126,7 @@ function links(book, chapters, { origin, token }) {
 }
 
 export function buildEmailHTML(book, chapters, { origin, token, readingTitle, participants, questions, quote }) {
-  const { readUrl, manageUrl, unsubUrl } = links(book, chapters, { origin, token });
+  const { readUrl, manageUrl, pauseUrl, cadenceUrl, unsubUrl } = links(book, chapters, { origin, token });
   const cjk = isCJK(chapters);
   const label = chapterLabel(chapters, cjk);
   const mins = readMinutes(chapters);
@@ -196,6 +206,19 @@ export function buildEmailHTML(book, chapters, { origin, token, readingTitle, pa
     <a href="${readUrl}" style="display:inline-block;background:#6B1D2A;color:#FAF6F0;text-decoration:none;padding:12px 30px;border-radius:6px;font-size:14px">${T(cjk, "Open in the app")} →</a>
     <p style="font-size:12px;color:#B0A79A;margin:14px 0 0">${T(cjk, "Track your progress, adjust your schedule, or join the discussion.")}</p>
   </div>
+
+  <!-- Pause and cadence, one tap from the inbox. Both already existed in the
+       database and the cron honoured them, but the only way to reach either was
+       the app on the original device — so in practice a reader who fell behind
+       had exactly one lever available to them: unsubscribe. -->
+  <div style="margin:22px 0 0;padding:14px 18px;background:#FAF6F0;border:1px solid #E8E2DA;border-radius:6px">
+    <p style="font-size:11px;color:#8A7E73;margin:0 0 8px;font-family:${SANS}">${T(cjk, "Reading too fast?")}</p>
+    <p style="font-size:12px;margin:0;font-family:${SANS}">
+      <a href="${pauseUrl}" style="color:#6B1D2A;text-decoration:underline;font-weight:600">${T(cjk, "Pause delivery")}</a>
+      &nbsp;·&nbsp;
+      <a href="${cadenceUrl}" style="color:#6B1D2A;text-decoration:underline;font-weight:600">${T(cjk, "Change cadence")}</a>
+    </p>
+  </div>
 </div>
 <div style="padding:18px 24px;border-top:1px solid #E8E2DA;text-align:center;background:#FAF6F0">
   <p style="font-size:11px;color:#8A7E73;margin:0 0 6px">${T(cjk, "Sent by The Chapter · Classic literature, chapter by chapter")}</p>
@@ -209,7 +232,7 @@ export function buildEmailHTML(book, chapters, { origin, token, readingTitle, pa
 }
 
 export function buildEmailText(book, chapters, { origin, token, readingTitle, participants, questions, quote }) {
-  const { readUrl, unsubUrl } = links(book, chapters, { origin, token });
+  const { readUrl, manageUrl, unsubUrl } = links(book, chapters, { origin, token });
   const cjk = isCJK(chapters);
   const mins = readMinutes(chapters);
   const prelude = chapters[0]?.prelude;
@@ -224,7 +247,9 @@ export function buildEmailText(book, chapters, { origin, token, readingTitle, pa
   out += chapters.map(ch => (chapters.length > 1 ? (cjk ? `第 ${ch.chNum} 章\n\n` : `Chapter ${ch.chNum}\n\n`) : "") + String(ch.text || "").trim()).join(`\n\n${"─".repeat(40)}\n\n`);
   if (quote) out += `\n\n${T(cjk, "Today's line")}:\n"${quote}"\n${cjk ? "分享" : "Share it"}: ${origin}/share?b=${encodeURIComponent(book.id)}&c=${chapters[0].chNum}\n`;
   if (questions && questions.length) out += `\n\n${T(cjk, "To discuss as you read")}:\n${questions.map(q => `· ${q}`).join("\n")}\n`;
-  out += `\n\n${"─".repeat(40)}\n${cjk ? "在应用中继续阅读" : "Continue in the app"}: ${readUrl}\n${T(cjk, "Unsubscribe")}: ${unsubUrl}`;
+  out += `\n\n${"─".repeat(40)}\n${cjk ? "在应用中继续阅读" : "Continue in the app"}: ${readUrl}`
+       + `\n${T(cjk, "Delivery settings")} (${cjk ? "暂停 / 调整频率" : "pause, change cadence"}): ${manageUrl}`
+       + `\n${T(cjk, "Unsubscribe")}: ${unsubUrl}`;
   return out;
 }
 
